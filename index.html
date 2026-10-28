@@ -1,0 +1,3373 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>eDengue Analytics - PKK Penampang</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.css" type="text/css"/>
+<script src="https://unpkg.com/leaflet-gesture-handling"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root{
+  --ink:#1d3144;
+  --paper:#f2f6f9;
+  --panel:#ffffff;
+  --teal:#1f6fb5;
+  --teal-dark:#123f6e;
+  --red:#c0562a;
+  --red-dark:#6e2f14;
+  --red-soft:#fbe6da;
+  --amber:#2f8f6b;
+  --amber-dark:#17503a;
+  --amber-soft:#dff2e8;
+  --green-soft:#e0edf8;
+  --muted:#4f6070;
+  --line:#dae3ea;
+  --accent:#d49a1a;
+  --accent-dark:#7a5608;
+  --accent-soft:#fbf0d4;
+  --shadow: 0 1px 2px rgba(29,49,68,0.05), 0 4px 14px rgba(29,49,68,0.07);
+  --shadow-lg: 0 2px 4px rgba(29,49,68,0.06), 0 12px 28px rgba(29,49,68,0.11);
+  --mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);}
+.wrap{max-width:1800px;margin:0 auto;padding:0 24px 60px;}
+
+/* ===== UPLOAD SCREEN ===== */
+#uploadScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at top, #2d4a63 0%, var(--ink) 55%, #14212e 100%);position:relative;}
+.upload-card{background:#1d3144;border:1px solid rgba(255,255,255,0.1);border-radius:10px;max-width:640px;width:92%;padding:38px 40px;color:#eef2ef;box-shadow:0 20px 60px rgba(0,0,0,0.35);}
+.upload-card .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#a9cdea;margin-bottom:8px;}
+.upload-card h1{margin:0 0 8px;font-size:24px;font-weight:800;letter-spacing:-0.01em;}
+.upload-card p.desc{font-size:13.5px;color:#c3dbee;line-height:1.6;margin:0 0 22px;}
+.dropzone{border:2px dashed #456580;border-radius:6px;padding:34px 20px;text-align:center;cursor:pointer;transition:border-color .15s, background .15s;}
+.dropzone:hover, .dropzone.drag{border-color:var(--accent); background:rgba(212,154,26,0.08);}
+.dropzone .icon{font-size:30px;margin-bottom:10px;}
+.dropzone .main{font-size:14px;font-weight:600;}
+.dropzone .sub{font-size:12px;color:#8fa2a0;margin-top:6px;}
+#fileInput{display:none;}
+.file-chip{display:flex;background:#101b26;border:1px solid #456580;border-radius:5px;padding:10px 14px;font-family:var(--mono);font-size:12px;justify-content:space-between;align-items:center;}
+.file-chip .rm{color:#f0b08a;cursor:pointer;font-size:11px;text-decoration:underline;}
+.upload-status{margin-top:16px;font-family:var(--mono);font-size:12px;color:#a9cdea;min-height:18px;}
+.upload-status.err{color:#f0b08a;}
+.req-cols{margin-top:22px;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;}
+.req-cols summary{cursor:pointer;font-size:12px;color:#8fa2a0;font-family:var(--mono);}
+.req-cols ul{margin:10px 0 0;padding-left:18px;font-size:11.5px;color:#a8c8e6;line-height:1.7;columns:2;}
+.load-btn{margin-top:20px;width:100%;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.02em;box-shadow:0 2px 10px rgba(212,154,26,0.35);transition:background .15s, transform .1s;}
+.load-btn:hover:not(:disabled){background:var(--accent-dark);}
+.load-btn:active:not(:disabled){transform:translateY(1px);}
+.load-btn:disabled{background:#2b4757;cursor:not-allowed;}
+.privacy-note{margin-top:14px;font-size:11px;color:#a9bccb;line-height:1.6;}
+
+/* LANGUAGE TOGGLE */
+.lang-toggle{display:inline-flex;border:1px solid rgba(255,255,255,0.2);border-radius:5px;overflow:hidden;}
+.lang-toggle button{font-family:var(--mono);font-size:11px;padding:5px 10px;border:none;background:transparent;color:#a9cdea;cursor:pointer;}
+.lang-toggle button:first-child{border-right:1px solid rgba(255,255,255,0.2);}
+.lang-toggle button.active{background:var(--accent);color:#fff;font-weight:700;}
+#uploadLangToggle{position:absolute;top:18px;right:18px;}
+
+/* ===== HEADER ===== */
+header.top{background:linear-gradient(165deg, var(--ink) 0%, #2d4a63 100%);color:#eef2ef;padding:26px 0 0;}
+header.top .wrap{padding-bottom:0;}
+.masthead{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:14px;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,0.15);}
+.masthead .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#a9cdea;margin-bottom:6px;}
+.masthead h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-0.01em;}
+.masthead .sub{font-size:13px;color:#c3dbee;margin-top:4px;}
+.masthead .meta{text-align:right;font-family:var(--mono);font-size:11px;color:#a8c8e6;line-height:1.6;}
+.masthead .actions{display:flex;gap:10px;align-items:center;}
+.btn-swap{font-family:var(--mono);font-size:11px;color:#a9cdea;border:1px solid #456580;padding:6px 10px;border-radius:4px;cursor:pointer;background:transparent;}
+.btn-swap:hover{border-color:var(--accent);color:#fff;background:var(--accent);}
+
+/* WEEK TICKER */
+.ticker-wrap{padding:14px 0 20px;}
+.ticker-label{font-family:var(--mono);font-size:10.5px;color:#a9cdea;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
+.ticker{display:flex;gap:2px;overflow-x:auto;padding-bottom:4px;}
+.ticker .cell{flex:1 0 auto;width:16px;height:34px;border-radius:2px;position:relative;cursor:pointer;transition:transform .1s;}
+.ticker .cell:hover{transform:scaleY(1.15);outline:1px solid #fff;}
+
+/* KPI ROW */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin:22px 0 26px;}
+.kpi{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--line);border-radius:8px;padding:14px 16px;box-shadow:var(--shadow);transition:transform .12s ease, box-shadow .12s ease;}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);}
+.kpi.alert{border-top-color:var(--red);}
+.kpi.ok{border-top-color:var(--teal);}
+.kpi .num{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--ink);}
+.kpi .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+.kpi.alert .num{color:var(--red);}
+.kpi.ok .num{color:var(--teal);}
+
+/* SECTIONS */
+section{margin:30px 0;}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:6px;margin-bottom:14px;}
+.sec-head h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;margin:0;}
+.sec-head .note{font-size:11.5px;color:var(--muted);font-family:var(--mono);}
+.basis-toggle{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;}
+.basis-btn{font-family:var(--sans);font-size:11.5px;padding:5px 11px;border:none;background:#fff;color:var(--muted);cursor:pointer;}
+.basis-btn:not(:last-child){border-right:1px solid var(--line);}
+.basis-btn.active{background:var(--accent);color:#fff;font-weight:600;}
+.basis-btn:disabled{color:#c3cac6;cursor:not-allowed;}
+.sort-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.sort-bar label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+.sort-bar select{font-family:var(--sans);font-size:12.5px;padding:5px 9px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);}
+.sort-dir-btn{font-family:var(--mono);font-size:11.5px;padding:5px 10px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--accent);cursor:pointer;}
+.sort-dir-btn:hover{border-color:var(--accent);}
+.grid-2{display:grid;grid-template-columns:2.2fr 1fr;gap:16px;min-width:0;}
+.grid-2 > *{min-width:0;}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;box-shadow:var(--shadow);}
+.panel h3{margin:0 0 10px;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:4px;}
+.filters select{font-family:var(--sans);font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);}
+#mapRapidFilter{font-family:var(--sans);font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);}
+.filters .reset{font-family:var(--mono);font-size:11px;color:var(--accent);cursor:pointer;text-decoration:underline;}
+
+/* MULTI-SELECT (searchable checkbox dropdown) */
+.multiselect{position:relative;display:inline-block;}
+.multiselect-btn{font-family:var(--sans);font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);cursor:pointer;min-width:150px;text-align:left;position:relative;padding-right:24px;}
+.multiselect-btn::after{content:'▾';position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:10px;}
+.multiselect-btn.has-selection{border-color:var(--accent);color:var(--accent-dark);font-weight:600;}
+.multiselect-panel{position:absolute;top:calc(100% + 4px);left:0;z-index:20;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow-lg);width:280px;padding:8px;}
+.multiselect-search{width:100%;font-family:var(--sans);font-size:12.5px;padding:6px 8px;border:1px solid var(--line);border-radius:4px;margin-bottom:6px;}
+.multiselect-actions{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--accent);margin-bottom:6px;}
+.multiselect-actions span{cursor:pointer;text-decoration:underline;}
+.multiselect-list{max-height:220px;overflow-y:auto;border-top:1px solid var(--line);padding-top:4px;}
+.multiselect-list label{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:4px 3px;cursor:pointer;border-radius:3px;}
+.multiselect-list label:hover{background:#f2f6f9;}
+.multiselect-list label span.cnt{margin-left:auto;color:var(--muted);font-family:var(--mono);font-size:10.5px;}
+.multiselect-list .empty{font-size:12px;color:var(--muted);padding:8px 3px;}
+
+.week-range{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
+.week-range .wr-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+.week-range .wr-head label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+.week-range .wr-value{font-family:var(--mono);font-size:12.5px;color:var(--ink);font-weight:600;}
+.range-slider{position:relative;height:28px;}
+.range-slider .track{position:absolute;top:12px;left:0;right:0;height:4px;background:var(--line);border-radius:2px;}
+.range-slider .track-fill{position:absolute;top:12px;height:4px;background:var(--accent);border-radius:2px;}
+.range-slider input[type=range]{position:absolute;left:0;right:0;top:5px;width:100%;margin:0;pointer-events:none;-webkit-appearance:none;appearance:none;background:transparent;}
+.range-slider input[type=range]::-webkit-slider-runnable-track{-webkit-appearance:none;height:4px;background:transparent;}
+.range-slider input[type=range]::-webkit-slider-thumb{pointer-events:auto;-webkit-appearance:none;appearance:none;width:16px;height:16px;margin-top:0;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;}
+.range-slider input[type=range]::-moz-range-track{height:4px;background:transparent;border:none;}
+.range-slider input[type=range]::-moz-range-thumb{pointer-events:auto;width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line);padding:6px 8px;cursor:pointer;white-space:nowrap;}
+td{padding:7px 8px;border-bottom:1px solid #e9f1f8;}
+tr:hover td{background:#f3f8fc;}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:600;}
+.pill.tamat{background:var(--amber-soft);color:var(--amber-dark);}
+.pill.terkawal{background:var(--green-soft);color:var(--teal-dark);}
+.pill.aktif{background:var(--red-soft);color:var(--red-dark);}
+
+#map{height:620px;border-radius:4px;}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:8px;flex-wrap:wrap;}
+.legend span{display:inline-flex;align-items:center;gap:5px;}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+.chart-box{position:relative;height:260px;min-width:0;}
+.chart-box.tall{height:340px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;min-width:0;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;min-width:0;}
+.two-col > *, .three-col > *{min-width:0;}
+
+footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;}
+
+.hidden{display:none !important;}
+
+@media (max-width:900px){
+  .kpi-row{grid-template-columns:repeat(2,1fr);}
+  .grid-2{grid-template-columns:1fr;}
+  .two-col,.three-col{grid-template-columns:1fr;}
+  .req-cols ul{columns:1;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== UPLOAD SCREEN ===================== -->
+<div id="uploadScreen">
+  <div class="lang-toggle" id="uploadLangToggle">
+    <button data-lang="ms" type="button" class="active">BM</button>
+    <button data-lang="en" type="button">EN</button>
+  </div>
+  <div class="upload-card">
+    <div class="eyebrow">PKK Penampang</div>
+    <h1 data-i18n="pageTitle">eDengue Analytics</h1>
+    <p class="desc" data-i18n="uploadDesc">Muat naik ekstrak eDengue V2 (.xlsx / .xls / .csv) daripada komputer anda. Data diproses sepenuhnya dalam pelayar — tiada data dimuat naik ke mana-mana pelayan.</p>
+
+    <div class="dropzone" id="dropzone">
+      <div class="icon">⭱</div>
+      <div class="main" data-i18n="dropzoneMainMulti">Klik untuk pilih fail (boleh pilih beberapa), atau seret &amp; lepas di sini</div>
+      <div class="sub" data-i18n="dropzoneSubMulti">.xlsx, .xls atau .csv — muat naik satu fail setiap tahun untuk analisis multi-tahun</div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple/>
+    </div>
+
+    <div id="fileChipList" style="margin-top:14px;display:flex;flex-direction:column;gap:6px;"></div>
+
+    <div class="upload-status" id="uploadStatus"></div>
+
+    <button class="load-btn" id="loadBtn" disabled data-i18n="generateDashboard">Jana Dashboard</button>
+
+    <details class="req-cols">
+      <summary data-i18n="paramsToggle">Parameters (klik untuk lihat)</summary>
+      <ul>
+        <li><span data-i18n="colRequired">Tarikh Onset</span>*</li>
+        <li>Tkh Notifikasi (<span data-i18n="colTrendToggle">untuk togol asas trend</span>)</li>
+        <li>Tarikh Daftar (<span data-i18n="colTrendToggle">untuk togol asas trend</span>)</li>
+        <li>Tarikh Diagnosis (<span data-i18n="colDiagDelayAnalysis">untuk analisis tempoh ke diagnosis</span>)</li>
+        <li>Status Awal Kes, Status Akhir Kes (<span data-i18n="colDeathKpi">untuk KPI Bilangan Kematian</span>)</li>
+        <li>Ujian Rapid (<span data-i18n="colRapidAnalysis">untuk analisis NS1/IgM/IgG</span>)</li>
+        <li>Kategori Pekerjaan, Pekerjaan (<span data-i18n="colDemoAnalysis">untuk analisis demografi</span>)</li>
+        <li>Alamat Pekerjaan (<span data-i18n="colWorkAnalysis">untuk analisis lokasi tempat kerja</span>)</li>
+        <li>Lokaliti Keutamaan (<span data-i18n="colHotspotKpi">untuk KPI Hotspot rasmi KKM</span>)</li>
+        <li>Jenis/Kemudahan Kesihatan(Maklumat Pemberitahu) (<span data-i18n="colFacilityAnalysis">untuk analisis fasiliti notifikasi</span>)</li>
+        <li>Lokaliti (Alamat Semasa)*</li>
+        <li>Mukim/Zon (Alamat Semasa)*</li>
+        <li>Jenis Kes</li>
+        <li>Wabak No</li>
+        <li>Wabak Status</li>
+        <li>Umur (Tahun)</li>
+        <li>Jantina</li>
+        <li>Keturunan</li>
+        <li>Status Kewarganegaraan</li>
+        <li>Latitud (ISO)*</li>
+        <li>Lngitud (ISO)*</li>
+        <li>Sakit Kepala / Sakit Badan/Sendi / Loya-Muntah / Ruam / Cirit-birit / Sakit Perut / Gejala Pendarahan / Sakit Belakang Mata</li>
+      </ul>
+      <div style="font-size:11px;color:#a9bccb;margin-top:8px;" data-i18n="colFootnote">*Wajib. Lajur lain adalah pilihan — dashboard akan tetap dijana jika tiada, dengan paparan berkaitan diringkaskan.</div>
+    </details>
+
+    <div class="privacy-note" data-i18n="privacyNote">Fail dibaca terus oleh pelayar (JavaScript FileReader). Tiada rangkaian digunakan untuk data kes — hanya perpustakaan carta/peta (Chart.js, Leaflet) dimuat dari CDN semasa pemuatan halaman pertama.</div>
+  </div>
+</div>
+
+<!-- ===================== DASHBOARD ===================== -->
+<div id="dashboardScreen" class="hidden">
+
+<header class="top">
+  <div class="wrap">
+    <div class="masthead">
+      <div>
+        <div class="eyebrow">PKK Penampang · Sistem eDengue V2 · Bulletin Dalaman</div>
+        <h1 data-i18n="dashTitle">Situasi Semasa Kes Denggi</h1>
+        <div class="sub">Daerah Penampang</div>
+      </div>
+      <div class="masthead">
+        <div class="lang-toggle" id="dashLangToggle" style="margin-right:14px;">
+          <button data-lang="ms" type="button" class="active">BM</button>
+          <button data-lang="en" type="button">EN</button>
+        </div>
+        <div class="meta" id="genMeta"></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-top:10px;flex-wrap:wrap;gap:10px;">
+      <div id="loadedFilesPanel" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;"></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-swap" id="addMoreDataBtn" data-i18n="addMoreData">+ Tambah Data</button>
+        <button class="btn-swap" id="swapFileBtn" data-i18n="swapFile">↺ Muat naik fail lain</button>
+      </div>
+    </div>
+    <input type="file" id="addMoreFileInput" accept=".xlsx,.xls,.csv" multiple class="hidden"/>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="kpi-row" id="kpiRow"></div>
+
+  <section>
+    <div class="sec-head">
+      <h2 data-i18n="filterData">Tapis Data</h2>
+      <span class="note" data-i18n="filterDataNote">Tapisan mempengaruhi semua paparan di bawah</span>
+    </div>
+    <div class="filters">
+      <select id="fMukim"><option value="" data-i18n="allMukim">Semua Mukim/Zon</option></select>
+      <select id="fJenis"><option value="" data-i18n="allJenisKes">Semua Jenis Kes</option></select>
+      <select id="fStatus"><option value="" data-i18n="allWabakStatus">Semua Status Wabak</option></select>
+      <select id="fTahun"><option value="" data-i18n="allYears">Semua Tahun</option></select>
+      <span class="reset" id="resetFilters" data-i18n="resetFilters">Set semula tapisan</span>
+    </div>
+    <div class="week-range">
+      <div class="wr-head">
+        <label><span data-i18n="epiWeekRange">Julat Minggu Epid</span> <span id="weekRangeBasisNote" style="text-transform:none;font-weight:400;"></span></label>
+        <span class="wr-value" id="weekRangeValue"></span>
+      </div>
+      <div class="range-slider">
+        <div class="track"></div>
+        <div class="track-fill" id="wrTrackFill"></div>
+        <input type="range" id="weekMinSlider" min="0" max="0" value="0" step="1">
+        <input type="range" id="weekMaxSlider" min="0" max="0" value="0" step="1">
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2 data-i18n="trendTitle">Trend Kes Denggi</h2>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="note" id="epiNote"></span>
+        <div class="basis-toggle" id="basisToggle">
+          <button class="basis-btn" data-basis="onset" type="button" data-i18n="basisOnset">Tarikh Onset</button>
+          <button class="basis-btn" data-basis="notif" type="button" data-i18n="basisNotif">Tarikh Notifikasi</button>
+          <button class="basis-btn active" data-basis="daftar" type="button" data-i18n="basisDaftar">Tarikh Daftar Kes</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+      <label style="font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:5px;cursor:pointer;">
+        <input type="checkbox" id="epiMAOnlyToggle" style="cursor:pointer;">
+        <span data-i18n="showMAOnly">Papar Moving Average Sahaja</span>
+      </label>
+    </div>
+    <div class="panel">
+      <div class="chart-box tall"><canvas id="epiCurve"></canvas></div>
+    </div>
+  </section>
+
+  <section id="yearCompareSection" class="hidden">
+    <div class="sec-head">
+      <h2 data-i18n="yearCompareTitle">Perbandingan Tahunan</h2>
+      <span class="note" data-i18n="yearCompareNote">Setiap tahun dibandingkan mengikut minggu epid (EW1–EW53) — mengabaikan tapisan Tahun</span>
+    </div>
+    <div class="panel">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);" data-i18n="yearsToShow">Tahun dipaparkan:</label>
+        <div class="multiselect" id="yearCompareMultiselect">
+          <button type="button" class="multiselect-btn" id="yearCompareMsBtn" data-i18n="allYears">Semua Tahun</button>
+          <div class="multiselect-panel hidden" id="yearCompareMsPanel">
+            <div class="multiselect-actions">
+              <span id="yearCompareMsSelectAll" data-i18n="selectAll">Pilih Semua</span>
+              <span id="yearCompareMsClear" data-i18n="clearSelection">Kosongkan</span>
+            </div>
+            <div class="multiselect-list" id="yearCompareMsList"></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-box tall"><canvas id="yearCompareChart"></canvas></div>
+    </div>
+  </section>
+
+  <section id="heatmapSection" class="hidden">
+    <div class="sec-head">
+      <h2 data-i18n="heatmapTitle">Peta Haba Tahun × Minggu</h2>
+      <span class="note" data-i18n="heatmapNote">Setiap sel mewakili bilangan kes bagi satu minggu epid dalam satu tahun</span>
+    </div>
+    <div class="panel">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-family:var(--mono);font-size:11px;color:var(--muted);">
+        <span data-i18n="lowToHigh">rendah → tinggi</span>
+        <span id="heatmapColorScale" style="display:inline-flex;gap:1px;"></span>
+      </div>
+      <div id="heatmapGrid" style="overflow-x:auto;"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2 data-i18n="spatialTitle">Taburan Spatial &amp; Kluster</h2>
+      <span class="note" data-i18n="spatialNote">Klik penanda untuk butiran lokaliti</span>
+    </div>
+    <div class="panel" style="margin-bottom:16px;">
+      <h3 data-i18n="mukimChartTitle">Mukim/Zon mengikut beban kes</h3>
+      <div class="chart-box" style="height:220px;"><canvas id="mukimChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <button class="basis-btn" id="kdeToggleBtn" type="button" data-i18n="kdeOff">Lapisan KDE: OFF</button>
+          <div id="kdeBandwidthWrap" class="hidden" style="display:flex;align-items:center;gap:6px;">
+            <label style="font-size:11px;color:var(--muted);font-family:var(--mono);" data-i18n="kdeBandwidth">Kelancaran</label>
+            <input type="range" id="kdeBandwidth" min="15" max="80" value="35" step="5">
+            <span id="kdeBandwidthVal" style="font-family:var(--mono);font-size:11px;color:var(--muted);">35px</span>
+          </div>
+          <select id="mapRapidFilter">
+            <option value="" data-i18n="rapidResultAll">Keputusan Ujian: Semua</option>
+          </select>
+        </div>
+        <div class="basis-toggle" id="mapToggle">
+          <button class="basis-btn active" data-mode="all" type="button" data-i18n="mapAll">Semua</button>
+          <button class="basis-btn" data-mode="single" type="button">Single Case</button>
+          <button class="basis-btn" data-mode="cluster" type="button" data-i18n="clusterWabak">Kluster Wabak</button>
+        </div>
+      </div>
+      <div class="week-range" style="margin-top:0;padding-top:0;border-top:none;margin-bottom:14px;">
+        <div class="wr-head">
+          <label data-i18n="mapWeekRange">Julat Minggu (Peta)</label>
+          <span class="wr-value" id="mapWeekRangeValue"></span>
+        </div>
+        <div class="range-slider" id="mapRangeSliderWrap">
+          <div class="track"></div>
+          <div class="track-fill" id="mapWrTrackFill"></div>
+          <input type="range" id="mapWeekMinSlider" min="0" max="0" value="0" step="1">
+          <input type="range" id="mapWeekMaxSlider" min="0" max="0" value="0" step="1">
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;">
+          <label style="font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="mapWindowModeToggle" style="cursor:pointer;">
+            <span data-i18n="fixedWindow">Use fixed window (e.g. 4-week slide)</span>
+          </label>
+          <div id="mapWindowControls" class="hidden" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <label style="font-size:11px;color:var(--muted);font-family:var(--mono);" data-i18n="windowSize">Window size</label>
+            <input type="number" id="mapWindowSize" min="1" value="4" style="width:48px;font-family:var(--sans);font-size:12.5px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;">
+            <span style="font-size:11px;color:var(--muted);" data-i18n="weeksLabel">weeks</span>
+            <input type="range" id="mapWindowPosSlider" min="0" max="0" value="0" step="1" style="width:160px;">
+            <button class="sort-dir-btn" id="mapWindowPlayBtn" type="button" data-i18n="playBtn">▶ Play</button>
+          </div>
+        </div>
+      </div>
+      <div id="map"></div>
+      <div class="note hidden" id="mapOutlierNote" style="color:var(--amber-dark);margin-top:6px;"></div>
+      <div class="legend" id="mapLegend">
+        <span><i class="dot" style="background:#c0562a"></i> <span data-i18n="legendActiveWabak">Kluster wabak aktif/terkawal</span></span>
+        <span><i class="dot" style="background:#2f8f6b"></i> <span data-i18n="legendClosedWabak">Wabak tamat</span></span>
+        <span><i class="dot" style="background:#1f6fb5"></i> Single Case</span>
+      </div>
+      <div class="legend hidden" id="kdeLegend">
+        <span style="font-family:var(--mono);color:var(--muted);" data-i18n="kdeDensity">Ketumpatan KDE:</span>
+        <span id="kdeColorScale" style="display:inline-flex;gap:2px;"></span>
+        <span style="font-family:var(--mono);color:var(--muted);" data-i18n="lowToHigh">rendah → tinggi</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2 data-i18n="clusterPanelTitle">Panel Kluster / Wabak</h2>
+      <span class="note" id="clusterNote"></span>
+    </div>
+    <div class="panel">
+      <div class="sort-bar">
+        <label for="clusterSortSelect" data-i18n="sortBy">Susun ikut:</label>
+        <select id="clusterSortSelect">
+          <option value="start" data-i18n="colNotifFirst">Notifikasi Pertama</option>
+          <option value="n" data-i18n="colCaseCount">Bil. Kes</option>
+          <option value="status" data-i18n="colStatus">Status</option>
+          <option value="secondNotif" data-i18n="colNotifSecond">Notifikasi Kedua</option>
+          <option value="end" data-i18n="colNotifLatest">Notifikasi Terkini</option>
+          <option value="duration" data-i18n="colDuration">Tempoh (hari)</option>
+          <option value="mukim" data-i18n="colMukim">Mukim/Zon</option>
+          <option value="lokaliti" data-i18n="colLocalityMain">Lokaliti Utama</option>
+          <option value="wabak_no" data-i18n="colWabakNo">No. Wabak</option>
+        </select>
+        <button class="sort-dir-btn" id="clusterSortDirBtn" type="button" title="Tukar arah susunan" data-i18n="sortDesc">↓ Menurun</button>
+      </div>
+      <table id="clusterTable">
+        <thead>
+          <tr>
+            <th style="cursor:default;" data-i18n="colNo">No.</th>
+            <th data-k="wabak_no" data-i18n="colWabakNo">No. Wabak</th>
+            <th data-k="mukim" data-i18n="colMukim">Mukim/Zon</th>
+            <th data-k="lokaliti" data-i18n="colLocalityMain">Lokaliti Utama</th>
+            <th data-k="n" data-i18n="colCaseCount">Bil. Kes</th>
+            <th data-k="start" data-i18n="colNotifFirst">Notifikasi Pertama</th>
+            <th data-k="secondNotif" data-i18n="colNotifSecond">Notifikasi Kedua</th>
+            <th data-k="end" data-i18n="colNotifLatest">Notifikasi Terkini</th>
+            <th data-k="duration" data-i18n="colDuration">Tempoh (hari)</th>
+            <th data-k="status" data-i18n="colStatus">Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div style="text-align:center;margin-top:14px;">
+        <button class="btn-swap hidden" id="clusterShowMoreBtn" type="button"></button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2 data-i18n="demoTitle">Profil Demografi &amp; Klinikal</h2>
+      <span class="note" data-i18n="demoNote">Berdasarkan tapisan semasa</span>
+    </div>
+    <div class="filters" style="margin-bottom:16px;">
+      <select id="demoJenisFilter">
+        <option value="" data-i18n="allCases">Semua Kes</option>
+        <option value="single" data-i18n="singleCaseOnly">Single Case Sahaja</option>
+        <option value="wabak" data-i18n="clusterWabakOnly">Kluster Wabak Sahaja</option>
+      </select>
+      <select id="demoWabakFilter">
+        <option value="" data-i18n="allWabakEpisodes">Semua Episod Wabak</option>
+      </select>
+      <div class="multiselect" id="lokalitiMultiselect">
+        <button type="button" class="multiselect-btn" id="lokalitiMsBtn" data-i18n="allLocalities">Semua Lokaliti</button>
+        <div class="multiselect-panel hidden" id="lokalitiMsPanel">
+          <input type="text" class="multiselect-search" id="lokalitiMsSearch" data-i18n-placeholder="searchLocality" placeholder="Cari lokaliti…">
+          <div class="multiselect-actions">
+            <span id="lokalitiMsSelectAll" data-i18n="selectAll">Pilih Semua</span>
+            <span id="lokalitiMsClear" data-i18n="clearSelection">Kosongkan</span>
+          </div>
+          <div class="multiselect-list" id="lokalitiMsList"></div>
+        </div>
+      </div>
+      <span class="reset" id="demoFilterReset" data-i18n="resetFilters">Set semula tapisan</span>
+    </div>
+    <div class="three-col">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;align-items:baseline;gap:8px;">
+            <h3 style="margin:0;" data-i18n="ageGroupTitle">Kumpulan Umur</h3>
+            <span class="note" id="ageChartN" style="font-family:var(--mono);"></span>
+          </div>
+          <select id="ageSchemeSelect" style="font-family:var(--sans);font-size:11.5px;padding:4px 7px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);">
+            <option value="lifecycle">0-5, 6-12, 13-17, 18-29, 30-59, 60+</option>
+            <option value="who">WHO: 0-4, 5-14, 15-24, 25-44, 45-64, 65+</option>
+            <option value="detailed" data-i18n="ageDetailed">Terperinci (setiap 5 tahun)</option>
+          </select>
+        </div>
+        <div class="chart-box"><canvas id="ageChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;"><h3 style="margin:0;" data-i18n="genderTitle">Jantina &amp; Kewarganegaraan</h3><span class="note" id="genderChartN" style="font-family:var(--mono);"></span></div>
+        <div class="chart-box"><canvas id="genderChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;"><h3 style="margin:0;" data-i18n="ethnicTitle">Keturunan</h3><span class="note" id="ethnicChartN" style="font-family:var(--mono);"></span></div>
+        <div class="chart-box"><canvas id="ethnicChart"></canvas></div>
+      </div>
+    </div>
+    <div class="three-col" style="margin-top:16px;">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;"><h3 style="margin:0;" data-i18n="jobCategoryTitle">Kategori Pekerjaan</h3><span class="note" id="jobCategoryChartN" style="font-family:var(--mono);"></span></div>
+        <div class="chart-box"><canvas id="jobCategoryChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;"><h3 style="margin:0;" data-i18n="jobDetailTitle">Pekerjaan (Terperinci)</h3><span class="note" id="jobDetailChartN" style="font-family:var(--mono);"></span></div>
+        <div class="chart-box"><canvas id="jobDetailChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;"><h3 style="margin:0;" data-i18n="workAddressTitle">Alamat Pekerjaan (Top 10)</h3><span class="note" id="workAddressChartN" style="font-family:var(--mono);"></span></div>
+        <div class="chart-box"><canvas id="workAddressChart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2 data-i18n="facilityTitle">Jenis Kemudahan Kesihatan (Maklumat Pemberitahu)</h2>
+      <span class="note" data-i18n="facilityNote">Fasiliti yang menotifikasi kes</span>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;"><h3 style="margin:0;" data-i18n="facilityTypeTitle">Jenis Kemudahan</h3><span class="note" id="facilityTypeChartN" style="font-family:var(--mono);"></span></div>
+        <div class="chart-box"><canvas id="facilityTypeChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;"><h3 style="margin:0;" data-i18n="facilityDetailTitle">Fasiliti (Terperinci)</h3><span class="note" id="facilityDetailChartN" style="font-family:var(--mono);"></span></div>
+        <div class="chart-box"><canvas id="facilityDetailChart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2 data-i18n="symptomTitle">Profil Gejala Klinikal</h2>
+      <span class="note"><span data-i18n="symptomNote">Peratus kes yang mengalami gejala (dari kes bertapis)</span> · <span id="symptomChartN"></span></span>
+    </div>
+    <div class="panel">
+      <div class="chart-box"><canvas id="symptomChart"></canvas></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2 data-i18n="diagDelayTitle">Tempoh ke Diagnosis (Onset → Diagnosis)</h2>
+      <span class="note" id="diagDelayNote"></span>
+    </div>
+    <div class="panel">
+      <div id="diagDelayStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px;"></div>
+      <div class="chart-box"><canvas id="diagDelayChart"></canvas></div>
+      <div class="note hidden" id="diagDelayOutlierNote" style="color:var(--amber-dark);margin-top:8px;"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Keputusan Ujian Rapid (NS1 / IgM / IgG)</h2>
+      <span class="note" id="rapidNote"></span>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <h3 data-i18n="rapidComboTitle">Taburan Kombinasi Keputusan</h3>
+        <div class="chart-box tall"><canvas id="rapidChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3 data-i18n="rapidMarkerTitle">Kadar Positif Setiap Penanda</h3>
+        <div id="rapidMarkerStats" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span data-i18n="footerLeft">PKK Penampang · Unit Epidemiologi · Sumber: fail dimuat naik oleh pengguna</span>
+    <span data-i18n="footerRight">Dashboard statik sendiri — data diproses tempatan dalam pelayar</span>
+  </footer>
+
+</div>
+</div>
+
+<script>
+/* ===========================================================
+   Dengue Surveillance Dashboard — Daerah Penampang (Offline, local-upload)
+   All processing happens client-side. No data leaves the browser.
+   =========================================================== */
+
+/* =========================================================
+   0. LANGUAGE / TRANSLATIONS
+   Covers static UI chrome (headers, labels, buttons, table columns) and
+   the dynamic text generated by the render functions below (KPI card
+   labels, chart titles/legends, tooltips, notes). Actual DATA VALUES from
+   the uploaded file (locality names, mukim, ethnicity, occupation, the raw
+   KKM Wabak Status field, etc.) are deliberately NOT translated — those
+   are literal government-system terms/data, not app UI text.
+   ========================================================= */
+let currentLang = 'ms';
+const I18N = {
+  ms: {
+    pageTitle:'eDengue Analytics',
+    uploadDesc:'Muat naik ekstrak eDengue V2 (.xlsx / .xls / .csv) daripada komputer anda. Data diproses sepenuhnya dalam pelayar — tiada data dimuat naik ke mana-mana pelayan.',
+    dropzoneMain:'Klik untuk pilih fail, atau seret & lepas di sini',
+    dropzoneMainMulti:'Klik untuk pilih fail (boleh pilih beberapa), atau seret & lepas di sini',
+    dropzoneSub:'.xlsx, .xls atau .csv — format ekstrak eDengue V2',
+    dropzoneSubMulti:'.xlsx, .xls atau .csv — muat naik satu fail setiap tahun untuk analisis multi-tahun',
+    addMoreData:'+ Tambah Data',
+    allYears:'Semua Tahun',
+    yearCompareTitle:'Perbandingan Tahunan',
+    yearCompareNote:'Setiap tahun dibandingkan mengikut minggu epid (EW1–EW53) — bebas daripada semua tapisan lain, kecuali "Tahun dipaparkan" di bawah',
+    statusLoadedMulti:'rekod berjaya dimuatkan daripada',
+    filesWord:'fail',
+    duplicatesSkipped:'pendua diabaikan',
+    removeFileConfirm:'Buang fail ini dan semua rekodnya daripada dashboard?',
+    singleCaseNoWabak:'(Kes Bersendirian — tiada wabak)',
+    yearsToShow:'Tahun dipaparkan:',
+    yearsSelectedWord:'tahun dipilih',
+    heatmapTitle:'Peta Haba Tahun × Minggu',
+    heatmapNote:'Setiap sel mewakili bilangan kes bagi satu minggu epid dalam satu tahun',
+    clusterShowMoreTemplate:'Papar {n} lagi ▾',
+    clusterShowLess:'Papar kurang ▴',
+    showMAOnly:'Papar Moving Average Sahaja',
+    outlierCoordsHidden:'kes dengan koordinat luar biasa (di luar Malaysia) disembunyikan daripada peta — semak Latitud/Lngitud dalam data sumber',
+    diagDelayTitle:'Tempoh ke Diagnosis (Onset → Diagnosis)',
+    diagDelayCasesAnalyzed:'Kes Dianalisis',
+    diagDelayMedian:'Median (hari)',
+    diagDelayMean:'Purata (hari)',
+    diagDelayAxisTitle:'Bilangan hari dari Onset ke Diagnosis',
+    diagDelayNoColumn:'Tiada lajur Tarikh Diagnosis dalam data ini',
+    diagDelayOutlierNote:'kes diabaikan (tarikh diagnosis sebelum tarikh onset — kemungkinan ralat data)',
+    diagDelayMissingNote:'kes tiada Tarikh Diagnosis',
+    removeFile:'buang',
+    generateDashboard:'Jana Dashboard',
+    paramsToggle:'Parameters (klik untuk lihat)',
+    colRequired:'Tarikh Onset',
+    colTrendToggle:'untuk togol asas trend',
+    colRapidAnalysis:'untuk analisis NS1/IgM/IgG',
+    colDemoAnalysis:'untuk analisis demografi',
+    colWorkAnalysis:'untuk analisis lokasi tempat kerja',
+    colHotspotKpi:'untuk KPI Hotspot rasmi KKM',
+    colFacilityAnalysis:'untuk analisis fasiliti notifikasi',
+    colDiagDelayAnalysis:'untuk analisis tempoh ke diagnosis',
+    colDeathKpi:'untuk KPI Bilangan Kematian',
+    colFootnote:'*Wajib. Lajur lain adalah pilihan — dashboard akan tetap dijana jika tiada, dengan paparan berkaitan diringkaskan.',
+    privacyNote:'Fail dibaca terus oleh pelayar (JavaScript FileReader). Tiada rangkaian digunakan untuk data kes — hanya perpustakaan carta/peta (Chart.js, Leaflet) dimuat dari CDN semasa pemuatan halaman pertama.',
+    dashTitle:'Situasi Semasa Kes Denggi',
+    swapFile:'↺ Muat naik fail lain',
+    filterData:'Tapis Data',
+    filterDataNote:'Tapisan mempengaruhi semua paparan di bawah',
+    allMukim:'Semua Mukim/Zon',
+    allJenisKes:'Semua Jenis Kes',
+    allWabakStatus:'Semua Status Wabak',
+    resetFilters:'Set semula tapisan',
+    epiWeekRange:'Julat Minggu Epid',
+    trendTitle:'Trend Kes Denggi',
+    basisOnset:'Tarikh Onset',
+    basisNotif:'Tarikh Notifikasi',
+    basisDaftar:'Tarikh Daftar Kes',
+    spatialTitle:'Taburan Spatial & Kluster',
+    spatialNote:'Klik penanda untuk butiran lokaliti',
+    mukimChartTitle:'Mukim/Zon mengikut beban kes',
+    kdeOff:'Lapisan KDE: OFF',
+    kdeOn:'Lapisan KDE: ON',
+    kdeBandwidth:'Kelancaran',
+    rapidResultAll:'Keputusan Ujian: Semua',
+    mapAll:'Semua',
+    clusterWabak:'Kluster Wabak',
+    mapWeekRange:'Julat Minggu (Peta)',
+    fixedWindow:'Guna tetingkap tetap (cth. gelongsor 4 minggu)',
+    windowSize:'Saiz tetingkap',
+    weeksLabel:'minggu',
+    playBtn:'▶ Main',
+    pauseBtn:'⏸ Jeda',
+    legendActiveWabak:'Kluster wabak aktif/terkawal',
+    legendClosedWabak:'Wabak tamat',
+    kdeDensity:'Ketumpatan KDE:',
+    lowToHigh:'rendah → tinggi',
+    clusterPanelTitle:'Panel Kluster / Wabak',
+    sortBy:'Susun ikut:',
+    colNotifFirst:'Notifikasi Pertama',
+    colCaseCount:'Bil. Kes',
+    colStatus:'Status',
+    colNotifSecond:'Notifikasi Kedua',
+    colNotifLatest:'Notifikasi Terkini',
+    colDuration:'Tempoh (hari)',
+    colMukim:'Mukim/Zon',
+    colLocalityMain:'Lokaliti Utama',
+    colWabakNo:'No. Wabak',
+    colNo:'No.',
+    sortDesc:'↓ Menurun',
+    sortAsc:'↑ Menaik',
+    demoTitle:'Profil Demografi & Klinikal',
+    demoNote:'Berdasarkan tapisan semasa',
+    allCases:'Semua Kes',
+    singleCaseOnly:'Single Case Sahaja',
+    clusterWabakOnly:'Kluster Wabak Sahaja',
+    allWabakEpisodes:'Semua Episod Wabak',
+    allLocalities:'Semua Lokaliti',
+    ageGroupTitle:'Kumpulan Umur',
+    ageDetailed:'Terperinci (setiap 5 tahun)',
+    genderTitle:'Jantina & Kewarganegaraan',
+    ethnicTitle:'Keturunan',
+    jobCategoryTitle:'Kategori Pekerjaan',
+    jobDetailTitle:'Pekerjaan (Terperinci)',
+    workAddressTitle:'Alamat Pekerjaan (Top 10)',
+    facilityTitle:'Jenis Kemudahan Kesihatan (Maklumat Pemberitahu)',
+    facilityNote:'Fasiliti yang menotifikasi kes',
+    facilityTypeTitle:'Jenis Kemudahan',
+    facilityDetailTitle:'Fasiliti (Terperinci)',
+    symptomTitle:'Profil Gejala Klinikal',
+    symptomNote:'Peratus kes yang mengalami gejala (dari kes bertapis)',
+    rapidComboTitle:'Taburan Kombinasi Keputusan',
+    rapidMarkerTitle:'Kadar Positif Setiap Penanda',
+    footerLeft:'PKK Penampang · Unit Epidemiologi · Sumber: fail dimuat naik oleh pengguna',
+    footerRight:'Dashboard statik sendiri — data diproses tempatan dalam pelayar',
+    // dynamic (JS-generated)
+    kpiJumlahKes:'Jumlah Kes',
+    kpiKesWabak:'Bilangan Kes Wabak',
+    kpiKesSingle:'Bilangan Single Kes',
+    kpiWabakAktif:'Wabak Aktif (Semasa)',
+    kpiKumulatifWabak:'Kumulatif Wabak',
+    kpiDeaths:'Bilangan Kematian',
+    deathMarkerDataset:'Kematian',
+    deathMarkerTooltip:'kematian minggu ini',
+    kpiLokalitiTerjejas:'Lokaliti Terjejas',
+    kpiKesWeekTrend:'Kes',
+    vsLastWeek:'vs mgu lepas',
+    caseWord:'kes',
+    weekEpidShown:'minggu epid dipaparkan',
+    clustersIdentified:'kluster wabak dikenalpasti',
+    noRapidColumn:'Tiada lajur Ujian Rapid dalam data ini',
+    rapidCasesWithResult:'kes dengan keputusan ujian rapid',
+    singleCaseDataset:'Single Case',
+    wabakCaseDataset:'Kes Wabak',
+    movingAvgDataset:'Moving Average (3-wk)',
+    caseCountAxis:'Bilangan Kes',
+    pctOfFilteredAxis:'% daripada kes bertapis',
+    basisNoteOnset:'tarikh onset',
+    basisNoteNotif:'tarikh notifikasi',
+    basisNoteDaftar:'tarikh daftar kes',
+    basisSliderOnset:'(Tarikh Onset)',
+    basisSliderNotif:'(Tarikh Notifikasi)',
+    basisSliderDaftar:'(Tarikh Daftar Kes)',
+    noNotifCol:'Tiada lajur Tkh Notifikasi dalam fail ini',
+    noDaftarCol:'Tiada lajur Tarikh Daftar dalam fail ini',
+    popupOnset:'Onset',
+    popupJenis:'Jenis',
+    popupWabakNo:'No. Wabak',
+    popupStatus:'Status',
+    popupUjianRapid:'Ujian Rapid',
+    fileLabel:'Fail',
+    recordsLabel:'rekod',
+    statusReading:'Membaca dan menghurai fail…',
+    statusEmpty:'Fail kosong atau tidak dapat dibaca.',
+    statusNoRecords:'Tiada rekod sah dijumpai (semak lajur Tarikh Onset).',
+    statusLoaded:'rekod berjaya dimuatkan.',
+    statusError:'Ralat menghurai fail: ',
+    missingColsError:'Lajur wajib tidak dijumpai:',
+    positiveWord:'Positif',
+    pctCasesDataset:'% Kes',
+    searchLocality:'Cari lokaliti…',
+    selectAll:'Pilih Semua',
+    clearSelection:'Kosongkan',
+    localitiesSelected:'lokaliti dipilih',
+    noMatches:'Tiada padanan',
+  },
+  en: {
+    pageTitle:'eDengue Analytics',
+    uploadDesc:'Upload an eDengue V2 extract (.xlsx / .xls / .csv) from your computer. Data is processed entirely in your browser — nothing is uploaded to any server.',
+    dropzoneMain:'Click to choose a file, or drag & drop here',
+    dropzoneMainMulti:'Click to choose files (you can select several), or drag & drop here',
+    dropzoneSub:'.xlsx, .xls or .csv — eDengue V2 extract format',
+    dropzoneSubMulti:'.xlsx, .xls or .csv — upload one file per year for multi-year analysis',
+    addMoreData:'+ Add More Data',
+    allYears:'All Years',
+    yearCompareTitle:'Year-over-Year Comparison',
+    yearCompareNote:'Each year compared by epi week (EW1–EW53) — independent of every other filter, except "Years shown" below',
+    statusLoadedMulti:'records loaded from',
+    filesWord:'file(s)',
+    duplicatesSkipped:'duplicates skipped',
+    removeFileConfirm:'Remove this file and all its records from the dashboard?',
+    singleCaseNoWabak:'(Single Case — no wabak)',
+    yearsToShow:'Years shown:',
+    yearsSelectedWord:'years selected',
+    heatmapTitle:'Year × Week Heatmap',
+    heatmapNote:'Each cell represents the case count for one epi week in one year',
+    clusterShowMoreTemplate:'Show {n} more ▾',
+    clusterShowLess:'Show less ▴',
+    showMAOnly:'Show Moving Average Only',
+    outlierCoordsHidden:'case(s) with abnormal coordinates (outside Malaysia) hidden from the map — check Latitud/Lngitud in the source data',
+    diagDelayTitle:'Time to Diagnosis (Onset → Diagnosis)',
+    diagDelayCasesAnalyzed:'Cases Analyzed',
+    diagDelayMedian:'Median (days)',
+    diagDelayMean:'Mean (days)',
+    diagDelayAxisTitle:'Days from Onset to Diagnosis',
+    diagDelayNoColumn:'No Tarikh Diagnosis column in this data',
+    diagDelayOutlierNote:'case(s) excluded (diagnosis date before onset date — likely a data error)',
+    diagDelayMissingNote:'case(s) missing Tarikh Diagnosis',
+    removeFile:'remove',
+    generateDashboard:'Generate Dashboard',
+    paramsToggle:'Parameters (click to view)',
+    colRequired:'Tarikh Onset',
+    colTrendToggle:'for the trend basis toggle',
+    colRapidAnalysis:'for NS1/IgM/IgG analysis',
+    colDemoAnalysis:'for demographic analysis',
+    colWorkAnalysis:'for workplace location analysis',
+    colHotspotKpi:'for the official KKM Hotspot KPI',
+    colFacilityAnalysis:'for notifying-facility analysis',
+    colDiagDelayAnalysis:'for time-to-diagnosis analysis',
+    colDeathKpi:'for the No. of Death(s) KPI',
+    colFootnote:'*Required. Other columns are optional — the dashboard still generates without them, with the related views simplified.',
+    privacyNote:'The file is read directly by your browser (JavaScript FileReader). No network is used for case data — only chart/map libraries (Chart.js, Leaflet) are loaded from a CDN when the page first loads.',
+    dashTitle:'Current Dengue Case Situation',
+    swapFile:'↺ Upload a different file',
+    filterData:'Filter Data',
+    filterDataNote:'Filters affect every view below',
+    allMukim:'All Mukim/Zones',
+    allJenisKes:'All Case Types',
+    allWabakStatus:'All Wabak Status',
+    resetFilters:'Reset filters',
+    epiWeekRange:'Epi Week Range',
+    trendTitle:'Dengue Case Trend',
+    basisOnset:'Onset Date',
+    basisNotif:'Notification Date',
+    basisDaftar:'Registration Date',
+    spatialTitle:'Spatial Distribution & Clusters',
+    spatialNote:'Click a marker for locality details',
+    mukimChartTitle:'Mukim/Zone by case burden',
+    kdeOff:'KDE Layer: OFF',
+    kdeOn:'KDE Layer: ON',
+    kdeBandwidth:'Smoothness',
+    rapidResultAll:'Test Result: All',
+    mapAll:'All',
+    clusterWabak:'Wabak Cluster',
+    mapWeekRange:'Week Range (Map)',
+    fixedWindow:'Use fixed window (e.g. 4-week slide)',
+    windowSize:'Window size',
+    weeksLabel:'weeks',
+    playBtn:'▶ Play',
+    pauseBtn:'⏸ Pause',
+    legendActiveWabak:'Active/controlled wabak cluster',
+    legendClosedWabak:'Closed wabak',
+    kdeDensity:'KDE Density:',
+    lowToHigh:'low → high',
+    clusterPanelTitle:'Cluster / Wabak Panel',
+    sortBy:'Sort by:',
+    colNotifFirst:'First Notification',
+    colCaseCount:'No. of Cases',
+    colStatus:'Status',
+    colNotifSecond:'Second Notification',
+    colNotifLatest:'Latest Notification',
+    colDuration:'Duration (days)',
+    colMukim:'Mukim/Zone',
+    colLocalityMain:'Main Locality',
+    colWabakNo:'Wabak No.',
+    colNo:'No.',
+    sortDesc:'↓ Descending',
+    sortAsc:'↑ Ascending',
+    demoTitle:'Demographic & Clinical Profile',
+    demoNote:'Based on current filters',
+    allCases:'All Cases',
+    singleCaseOnly:'Single Cases Only',
+    clusterWabakOnly:'Wabak Clusters Only',
+    allWabakEpisodes:'All Wabak Episodes',
+    allLocalities:'All Localities',
+    ageGroupTitle:'Age Group',
+    ageDetailed:'Detailed (every 5 years)',
+    genderTitle:'Gender & Citizenship',
+    ethnicTitle:'Ethnicity',
+    jobCategoryTitle:'Occupation Category',
+    jobDetailTitle:'Occupation (Detailed)',
+    workAddressTitle:'Workplace Address (Top 10)',
+    facilityTitle:'Health Facility Type (Notifier Information)',
+    facilityNote:'Facility that notified the case',
+    facilityTypeTitle:'Facility Type',
+    facilityDetailTitle:'Facility (Detailed)',
+    symptomTitle:'Clinical Symptom Profile',
+    symptomNote:'% of cases presenting with symptom (filtered cases)',
+    rapidComboTitle:'Result Combination Distribution',
+    rapidMarkerTitle:'Positivity Rate per Marker',
+    footerLeft:'PKK Penampang · Epidemiology Unit · Source: file uploaded by user',
+    footerRight:'Self-contained static dashboard — data processed locally in the browser',
+    // dynamic (JS-generated)
+    kpiJumlahKes:'Total Cases',
+    kpiKesWabak:'No. of Wabak Cases',
+    kpiKesSingle:'No. of Single Cases',
+    kpiWabakAktif:'Active Wabak (Current)',
+    kpiKumulatifWabak:'Cumulative Wabak',
+    kpiDeaths:'No. of Death(s)',
+    deathMarkerDataset:'Death(s)',
+    deathMarkerTooltip:'death(s) this week',
+    kpiLokalitiTerjejas:'Localities Affected',
+    kpiKesWeekTrend:'Cases',
+    vsLastWeek:'vs last wk',
+    caseWord:'cases',
+    weekEpidShown:'epi weeks shown',
+    clustersIdentified:'wabak clusters identified',
+    noRapidColumn:'No Ujian Rapid column in this data',
+    rapidCasesWithResult:'cases with a rapid test result',
+    singleCaseDataset:'Single Case',
+    wabakCaseDataset:'Wabak Case',
+    movingAvgDataset:'Moving Average (3-wk)',
+    caseCountAxis:'No. of Cases',
+    pctOfFilteredAxis:'% of filtered cases',
+    basisNoteOnset:'onset date',
+    basisNoteNotif:'notification date',
+    basisNoteDaftar:'registration date',
+    basisSliderOnset:'(Onset Date)',
+    basisSliderNotif:'(Notification Date)',
+    basisSliderDaftar:'(Registration Date)',
+    noNotifCol:'No Tkh Notifikasi column in this file',
+    noDaftarCol:'No Tarikh Daftar column in this file',
+    popupOnset:'Onset',
+    popupJenis:'Type',
+    popupWabakNo:'Wabak No.',
+    popupStatus:'Status',
+    popupUjianRapid:'Rapid Test',
+    fileLabel:'File',
+    recordsLabel:'records',
+    statusReading:'Reading and parsing file…',
+    statusEmpty:'File is empty or could not be read.',
+    statusNoRecords:'No valid records found (check the Tarikh Onset column).',
+    statusLoaded:'records loaded successfully.',
+    statusError:'Error parsing file: ',
+    missingColsError:'Required columns not found:',
+    positiveWord:'Positive',
+    pctCasesDataset:'% Cases',
+    searchLocality:'Search locality…',
+    selectAll:'Select All',
+    clearSelection:'Clear',
+    localitiesSelected:'localities selected',
+    noMatches:'No matches',
+  },
+};
+function t(key){
+  return (I18N[currentLang] && I18N[currentLang][key]) || I18N.ms[key] || key;
+}
+function translateStaticDOM(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    el.textContent = t(key);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
+    const key = el.getAttribute('data-i18n-placeholder');
+    el.placeholder = t(key);
+  });
+  document.documentElement.lang = currentLang;
+}
+function applyLanguage(lang){
+  currentLang = lang;
+  translateStaticDOM();
+  document.querySelectorAll('.lang-toggle button').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.lang===lang);
+  });
+  // Refresh whichever screen is currently visible so JS-generated text
+  // (KPI cards, chart titles/legends/tooltips, notes) picks up the change.
+  const dashVisible = !document.getElementById('dashboardScreen').classList.contains('hidden');
+  if(dashVisible && typeof renderAll === 'function'){
+    renderAll();
+    // Static labels inside dynamically-rebuilt controls (basis toggle note,
+    // week-range basis note, KDE button, sort-direction button) also need
+    // a refresh since renderAll() doesn't touch those.
+    if(typeof updateWeekRangeUI === 'function') updateWeekRangeUI();
+    if(typeof updateWeekRangeBasisNote === 'function') updateWeekRangeBasisNote();
+    if(typeof syncClusterSortControls === 'function') syncClusterSortControls();
+    const kdeBtn = document.getElementById('kdeToggleBtn');
+    if(kdeBtn && typeof kdeVisible !== 'undefined') kdeBtn.textContent = kdeVisible ? t('kdeOn') : t('kdeOff');
+    const playBtn = document.getElementById('mapWindowPlayBtn');
+    if(playBtn && typeof mapWindowTimer !== 'undefined') playBtn.textContent = mapWindowTimer ? t('pauseBtn') : t('playBtn');
+    const msBtn = document.getElementById('lokalitiMsBtn');
+    if(msBtn && typeof demoFilters !== 'undefined'){
+      const n = demoFilters.lokaliti.size;
+      msBtn.textContent = n===0 ? t('allLocalities') : `${n} ${t('localitiesSelected')}`;
+    }
+    const yearMsBtn = document.getElementById('yearCompareMsBtn');
+    if(yearMsBtn && typeof yearCompareSelected !== 'undefined'){
+      const n = yearCompareSelected.size;
+      yearMsBtn.textContent = n===0 ? t('allYears') : `${n} ${t('yearsSelectedWord')}`;
+    }
+  }
+}
+function initLanguageToggle(){
+  document.querySelectorAll('.lang-toggle button').forEach(btn=>{
+    btn.onclick = ()=> applyLanguage(btn.dataset.lang);
+  });
+}
+
+const COLORS = {
+  ink:'#1d3144', teal:'#1f6fb5', tealDark:'#123f6e',
+  red:'#c0562a', redSoft:'#fbe6da', amber:'#2f8f6b', amberSoft:'#dff2e8',
+  greenSoft:'#e0edf8', muted:'#4f6070', line:'#dae3ea',
+  accent:'#d49a1a', accentDark:'#7a5608', accentSoft:'#fbf0d4',
+  hotpink:'#e0763a'
+};
+
+let CASES = [];
+let state = { mukim:'', jenis:'', status:'', tahun:'', weekMinIdx:null, weekMaxIdx:null };
+let weekMeta = { buckets:[], indexOf:{}, basis:'onset' };
+let charts = {};
+let mapObj, clusterLayer;
+let clusterSort = { key:'start', dir:'desc' };
+
+/* =========================================================
+   1. FILE UPLOAD + PARSING
+   ========================================================= */
+
+// Canonical column names we look for (case/space tolerant match).
+const COLMAP = {
+  onset:            ['tarikh onset'],
+  notif_date:       ['tkh notifikasi'],
+  daftar_date:      ['tarikh daftar'],
+  diagnosis_date:   ['tarikh diagnosis'],
+  lokaliti:         ['lokaliti (alamat semasa)', 'lokaliti'],
+  mukim:            ['mukim/zon (alamat semasa)', 'mukim/zon', 'mukim'],
+  jenis_kes:        ['jenis kes'],
+  wabak_no:         ['wabak no'],
+  wabak_status:     ['wabak status'],
+  umur_tahun:       ['umur (tahun)'],
+  umur_bulan:       ['umur (bulan)'],
+  jantina:          ['jantina'],
+  keturunan:        ['keturunan'],
+  kategori_pekerjaan: ['kategori pekerjaan'],
+  jenis_kemudahan_kesihatan: ['jenis kemudahan kesihatan(maklumat pemberitahu)', 'jenis kemudahan kesihatan (maklumat pemberitahu)', 'jenis kemudahan kesihatan'],
+  alamat_pekerjaan: ['alamat pekerjaan'],
+  kemudahan_kesihatan: ['kemudahan kesihatan(maklumat pemberitahu)', 'kemudahan kesihatan (maklumat pemberitahu)'],
+  pekerjaan:          ['pekerjaan'],
+  kewarganegaraan:  ['status kewarganegaraan'],
+  lat:              ['latitud (iso)', 'latitud'],
+  lon:              ['lngitud (iso)', 'longitud (iso)', 'lngitud', 'longitud'],
+  status_akhir:     ['status akhir kes'],
+  status_awal:      ['status awal kes'],
+  notif_no:         ['notifikasi no'],
+  sakit_kepala:         ['sakit kepala'],
+  demam:                ['demam'],
+  sakit_belakang_mata:  ['sakit belakang mata'],
+  sakit_badan:          ['sakit badan/sendi'],
+  loya_muntah:          ['loya/muntah'],
+  ruam:                 ['ruam (rash)', 'ruam'],
+  sakit_perut:          ['sakit perut/ gejala abdominal', 'sakit perut/gejala abdominal', 'sakit perut'],
+  gejala_pendarahan:    ['gejala pendarahan'],
+  cirit_birit:          ['cirit - birit', 'cirit-birit', 'cirit birit'],
+  ujian_rapid:          ['ujian rapid'],
+  lokaliti_keutamaan:   ['lokaliti keutamaan'],
+};
+const REQUIRED = ['onset','lokaliti','mukim','lat','lon'];
+
+function norm(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); }
+
+function buildHeaderIndex(headerRow){
+  const idx = {};
+  headerRow.forEach((h,i)=>{ idx[norm(h)] = i; });
+  const resolved = {};
+  const missing = [];
+  Object.entries(COLMAP).forEach(([key, candidates])=>{
+    let found = null;
+    for(const c of candidates){ if(idx[c] !== undefined){ found = idx[c]; break; } }
+    resolved[key] = found;
+    if(found === null && REQUIRED.includes(key)) missing.push(key);
+  });
+  return {resolved, missing};
+}
+
+// CDC/MMWR epi-week (Sunday-start), validated against the `epiweeks` python
+// package. Returns {year, week} where `year` is the MMWR year (can differ
+// from calendar year for late-Dec / early-Jan dates).
+function cdcWeek(date){
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const dayNum = d.getUTCDay();
+  const sunday = new Date(d);
+  sunday.setUTCDate(d.getUTCDate() - dayNum);
+  const wed = new Date(sunday); wed.setUTCDate(sunday.getUTCDate()+3);
+  const year = wed.getUTCFullYear();
+  const jan1 = new Date(Date.UTC(year,0,1));
+  const jan1Day = jan1.getUTCDay();
+  const offsetToWed = (3 - jan1Day + 7) % 7;
+  const firstWed = new Date(jan1); firstWed.setUTCDate(jan1.getUTCDate() + offsetToWed);
+  const firstSunday = new Date(firstWed); firstSunday.setUTCDate(firstWed.getUTCDate() - 3);
+  const week = Math.round((sunday - firstSunday) / (7*86400000)) + 1;
+  return {year, week};
+}
+
+function parseDateCell(v){
+  // IMPORTANT: date cells are read as raw Excel serial numbers (see
+  // readFileAsRows — cellDates:false is intentional). SheetJS's own
+  // serial->Date object conversion (cellDates:true) was found to be
+  // unreliable: in some browser timezones (observed with Malaysia,
+  // UTC+8) it produces a timestamp a fraction of a second before
+  // midnight (e.g. 23:59:35 instead of 00:00:00) due to floating-point
+  // rounding in its internal conversion, which then silently rolls the
+  // calendar date back by a day. Converting the raw serial number
+  // ourselves with plain integer arithmetic avoids that entirely — the
+  // resulting Date is an exact, unambiguous UTC timestamp for local
+  // midnight of the intended calendar day, so any caller MUST extract it
+  // using getUTCFullYear/getUTCMonth/getUTCDate (never local getters).
+  if(typeof v === 'number'){
+    const days = Math.round(v) - 25569; // Excel epoch (1899-12-30) -> Unix epoch
+    const d = new Date(days * 86400 * 1000);
+    if(!isNaN(d)) return d;
+  }
+  // Defensive fallback — shouldn't normally be hit with cellDates:false,
+  // but handled just in case a cell still comes through as a Date object.
+  if(v instanceof Date && !isNaN(v)){
+    return new Date(Date.UTC(v.getFullYear(), v.getMonth(), v.getDate()));
+  }
+  if(typeof v === 'string'){
+    const s = v.trim();
+    // yyyy-mm-dd
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m) return new Date(Date.UTC(+m[1], +m[2]-1, +m[3]));
+    // dd/mm/yyyy or dd-mm-yyyy
+    m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if(m) return new Date(Date.UTC(+m[3], +m[2]-1, +m[1]));
+    const d = new Date(s);
+    if(!isNaN(d)) return d;
+  }
+  return null;
+}
+
+function toNum(v){
+  if(v === null || v === undefined || v === '') return null;
+  const n = parseFloat(v);
+  return isNaN(n) ? null : n;
+}
+
+// Classifies a free-text "Ujian Rapid" cell (e.g. "NS1 Positif, IgG Positif")
+// into one of the combination categories, tolerant of duplicate/reordered
+// entries in the source data.
+function classifyRapid(v){
+  if(!v) return 'Tiada Data';
+  const s = String(v).toUpperCase();
+  const hasNS1 = s.includes('NS1');
+  const hasIgM = s.includes('IGM');
+  const hasIgG = s.includes('IGG');
+  if(hasNS1 && hasIgM && hasIgG) return 'NS1+IgM+IgG';
+  if(hasNS1 && hasIgM) return 'NS1+IgM';
+  if(hasNS1 && hasIgG) return 'NS1+IgG';
+  if(hasIgM && hasIgG) return 'IgM+IgG';
+  if(hasNS1) return 'NS1 sahaja';
+  if(hasIgM) return 'IgM sahaja';
+  if(hasIgG) return 'IgG sahaja';
+  return 'Lain-lain';
+}
+
+// Source "Pekerjaan" values arrive in mixed casing (e.g. "SEKOLAH MENENGAH",
+// "Suri Rumah"); normalize to Title Case for consistent display, keeping
+// known acronyms like IPTA/IPTS uppercase.
+function normalizeJobLabel(v){
+  if(!v) return 'Tidak Dinyatakan';
+  const s = String(v).trim();
+  if(!s) return 'Tidak Dinyatakan';
+  return s.split(' ').map(w=>{
+    if(['IPTA','IPTS'].includes(w.toUpperCase())) return w.toUpperCase();
+    return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+  }).join(' ');
+}
+
+// Parses eDengue's "Lokaliti Keutamaan" field (e.g. "LOKALITI KEUTAMAAN lV")
+// into a clean roman-numeral tier (I/II/III/IV). Source data commonly uses
+// a lowercase "l" instead of the Roman numeral "I" (font/entry quirk), so
+// that substitution is handled here.
+function parseKeutamaanTier(raw){
+  if(!raw) return null;
+  const s = String(raw).toUpperCase();
+  if(!s.includes('KEUTAMAAN')) return null;
+  const tail = s.split('KEUTAMAAN').pop().trim().replace(/L/g,'I');
+  return ['I','II','III','IV'].includes(tail) ? tail : null;
+}
+
+function parseWorkbookRows(rows, headerRowIdx){
+  const headerRow = rows[headerRowIdx];
+  const {resolved, missing} = buildHeaderIndex(headerRow);
+  if(missing.length){
+    return {error: `${t('missingColsError')} ${missing.join(', ')}`};
+  }
+  const get = (row, key) => resolved[key] !== null ? row[resolved[key]] : undefined;
+  const hasRapidCol = resolved['ujian_rapid'] !== null;
+  const records = [];
+  for(let i=headerRowIdx+1; i<rows.length; i++){
+    const row = rows[i];
+    if(!row || row.every(c=>c===undefined || c==='' || c===null)) continue;
+    const onsetRaw = get(row,'onset');
+    const onsetDate = parseDateCell(onsetRaw);
+    if(!onsetDate) continue; // skip rows with no usable onset date
+    const lat = toNum(get(row,'lat'));
+    const lon = toNum(get(row,'lon'));
+    const {year, week} = cdcWeek(onsetDate);
+    const onsetISO = onsetDate.getUTCFullYear()+'-'+String(onsetDate.getUTCMonth()+1).padStart(2,'0')+'-'+String(onsetDate.getUTCDate()).padStart(2,'0');
+
+    let notif = null, year_notif = null, week_notif = null;
+    const notifDate = parseDateCell(get(row,'notif_date'));
+    if(notifDate){
+      const wn = cdcWeek(notifDate);
+      notif = notifDate.getUTCFullYear()+'-'+String(notifDate.getUTCMonth()+1).padStart(2,'0')+'-'+String(notifDate.getUTCDate()).padStart(2,'0');
+      year_notif = wn.year; week_notif = wn.week;
+    }
+
+    let daftar = null, year_daftar = null, week_daftar = null;
+    const daftarDate = parseDateCell(get(row,'daftar_date'));
+    if(daftarDate){
+      const wd = cdcWeek(daftarDate);
+      daftar = daftarDate.getUTCFullYear()+'-'+String(daftarDate.getUTCMonth()+1).padStart(2,'0')+'-'+String(daftarDate.getUTCDate()).padStart(2,'0');
+      year_daftar = wd.year; week_daftar = wd.week;
+    }
+
+    // Diagnosis date only needs a plain ISO string — it's used for the
+    // onset-to-diagnosis interval, not week-bucketing, so no epi-week
+    // computation is needed here.
+    let diagnosis = null;
+    const diagnosisDate = parseDateCell(get(row,'diagnosis_date'));
+    if(diagnosisDate){
+      diagnosis = diagnosisDate.getUTCFullYear()+'-'+String(diagnosisDate.getUTCMonth()+1).padStart(2,'0')+'-'+String(diagnosisDate.getUTCDate()).padStart(2,'0');
+    }
+
+    records.push({
+      notif_no: get(row,'notif_no') ?? null,
+      onset: onsetISO,
+      year, week,
+      notif, year_notif, week_notif,
+      daftar, year_daftar, week_daftar,
+      diagnosis,
+      lokaliti: (get(row,'lokaliti') || 'TIDAK DIKETAHUI').toString().trim() || 'TIDAK DIKETAHUI',
+      mukim: (get(row,'mukim') || 'TIDAK DIKETAHUI').toString().trim() || 'TIDAK DIKETAHUI',
+      jenis_kes: get(row,'jenis_kes') || 'Satu Kes',
+      wabak_no: get(row,'wabak_no') || null,
+      wabak_status: get(row,'wabak_status') || null,
+      umur_tahun: toNum(get(row,'umur_tahun')),
+      umur_bulan: toNum(get(row,'umur_bulan')),
+      jantina: get(row,'jantina') || 'Tidak Dinyatakan',
+      keturunan: get(row,'keturunan') || 'Tidak Dinyatakan',
+      kategori_pekerjaan: get(row,'kategori_pekerjaan') || 'Tidak Dinyatakan',
+      jenis_kemudahan_kesihatan: get(row,'jenis_kemudahan_kesihatan') || 'Tidak Dinyatakan',
+      alamat_pekerjaan: (get(row,'alamat_pekerjaan') || '').toString().trim() || 'Tidak Dinyatakan',
+      kemudahan_kesihatan: get(row,'kemudahan_kesihatan') || 'Tidak Dinyatakan',
+      pekerjaan: normalizeJobLabel(get(row,'pekerjaan')),
+      kewarganegaraan: get(row,'kewarganegaraan') || 'Tidak Dinyatakan',
+      lat, lon,
+      status_akhir: get(row,'status_akhir') || 'Belum Selesai',
+      status_awal: get(row,'status_awal') || null,
+      sakit_kepala: get(row,'sakit_kepala') || null,
+      demam: get(row,'demam') || null,
+      sakit_belakang_mata: get(row,'sakit_belakang_mata') || null,
+      sakit_badan: get(row,'sakit_badan') || null,
+      loya_muntah: get(row,'loya_muntah') || null,
+      ruam: get(row,'ruam') || null,
+      sakit_perut: get(row,'sakit_perut') || null,
+      gejala_pendarahan: get(row,'gejala_pendarahan') || null,
+      cirit_birit: get(row,'cirit_birit') || null,
+      ujian_rapid_kategori: hasRapidCol ? classifyRapid(get(row,'ujian_rapid')) : null,
+      lokaliti_keutamaan: get(row,'lokaliti_keutamaan') || null,
+      lokaliti_keutamaan_tier: parseKeutamaanTier(get(row,'lokaliti_keutamaan')),
+    });
+  }
+  return {records};
+}
+
+// Find the header row: scan the first 10 rows for one containing
+// recognizable eDengue column names (handles stray title rows above headers).
+function findHeaderRowIdx(rows){
+  const need = ['tarikh onset','lokaliti (alamat semasa)','mukim/zon (alamat semasa)'];
+  for(let i=0;i<Math.min(10, rows.length); i++){
+    const normed = (rows[i]||[]).map(norm);
+    const hits = need.filter(n=> normed.includes(n)).length;
+    if(hits >= 2) return i;
+  }
+  return 0;
+}
+
+/* =========================================================
+   1b. MULTI-YEAR DATA: dedup + merge across multiple uploaded files,
+   and IndexedDB persistence so re-uploading isn't required every session.
+   ========================================================= */
+let loadedFiles = []; // [{name, addedAt}] — live per-file record counts are
+                       // derived from CASES at render time via _sourceFile.
+
+// Notifikasi No is the natural unique-per-case identifier in eDengue. Some
+// records may lack it (older data, manual entries), so a composite of
+// otherwise-identifying fields is used as a fallback rather than risking
+// either false merges (treating two different real cases as duplicates) or
+// silently admitting true duplicates just because the primary key was blank.
+function caseDedupKey(r){
+  if(r.notif_no != null && String(r.notif_no).trim() !== '') return 'N:'+r.notif_no;
+  return 'C:'+[r.onset, r.lokaliti, r.mukim, r.wabak_no, r.umur_tahun, r.jantina].join('|');
+}
+
+// Merges newRecords into the global CASES array, skipping anything that
+// already matches an existing case by caseDedupKey — this is what makes it
+// safe to upload overlapping date ranges across multiple yearly extracts
+// without double-counting cases in every chart and KPI.
+function mergeRecords(newRecords, sourceFileName){
+  const existingKeys = new Set(CASES.map(caseDedupKey));
+  let added = 0, skipped = 0;
+  newRecords.forEach(r=>{
+    const key = caseDedupKey(r);
+    if(existingKeys.has(key)){ skipped++; return; }
+    existingKeys.add(key);
+    r._sourceFile = sourceFileName;
+    CASES.push(r);
+    added++;
+  });
+  return {added, skipped};
+}
+
+function readFileAsRows(file){
+  const isCsv = /\.csv$/i.test(file.name) || file.type === 'text/csv';
+
+  if(isCsv){
+    // CSV gets a completely different path from XLSX/XLS. SheetJS's CSV
+    // importer auto-detects date-looking text and converts it to a typed
+    // date serial — but it assumes US-style MM/DD/YYYY. eDengue's CSV
+    // export writes Malaysian DD/MM/YYYY dates, so SheetJS silently
+    // misreads any date with day <= 12 (e.g. "2/1/2026", meant as 2 Jan,
+    // gets read as 1 Feb) while dates with day > 12 accidentally survive
+    // as plain text (since they can't be forced into MM/DD). That's a
+    // partial, silent corruption — worse than an outright failure. Using
+    // PapaParse instead reads every field as plain text with zero type
+    // guessing, so parseDateCell's own DD/MM/YYYY-aware regex is what
+    // actually interprets every date, consistently.
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = (e)=>{
+        try{
+          const text = e.target.result;
+          const parsed = Papa.parse(text, {skipEmptyLines:true});
+          if(parsed.errors && parsed.errors.length){
+            console.warn('PapaParse warnings:', parsed.errors);
+          }
+          resolve(parsed.data);
+        }catch(err){ reject(err); }
+      };
+      reader.onerror = ()=> reject(reader.error);
+      reader.readAsText(file, 'utf-8');
+    });
+  }
+
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      try{
+        const data = new Uint8Array(e.target.result);
+        // cellDates:false is intentional — SheetJS's own serial->Date object
+        // conversion is unreliable (floating-point rounding can land a
+        // fraction of a second before midnight depending on the browser's
+        // local timezone, e.g. Malaysia UTC+8), which silently rolls dates
+        // back a day. We read the raw Excel serial number instead and
+        // convert it ourselves with exact integer arithmetic in
+        // parseDateCell — see the comment there.
+        const wb = XLSX.read(data, {type:'array', cellDates:false});
+        const sheetName = wb.SheetNames[0];
+        const ws = wb.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
+        resolve(rows);
+      }catch(err){ reject(err); }
+    };
+    reader.onerror = ()=> reject(reader.error);
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+/* ---- upload screen wiring ---- */
+
+function setStatus(msg, isErr){
+  const el = document.getElementById('uploadStatus');
+  el.textContent = msg || '';
+  el.className = 'upload-status' + (isErr ? ' err' : '');
+}
+
+function initUploadScreen(){
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const fileChipList = document.getElementById('fileChipList');
+  const loadBtn = document.getElementById('loadBtn');
+  let pendingFiles = []; // File objects staged for the initial (fresh-start) load
+
+  function renderFileChips(){
+    fileChipList.innerHTML = '';
+    pendingFiles.forEach((file, i)=>{
+      const chip = document.createElement('div');
+      chip.className = 'file-chip';
+      chip.innerHTML = `<span>${file.name} (${(file.size/1024).toFixed(0)} KB)</span><span class="rm">${t('removeFile')}</span>`;
+      chip.querySelector('.rm').onclick = (e)=>{
+        e.stopPropagation();
+        pendingFiles.splice(i,1);
+        renderFileChips();
+      };
+      fileChipList.appendChild(chip);
+    });
+    loadBtn.disabled = pendingFiles.length === 0;
+  }
+
+  function addFiles(fileList){
+    Array.from(fileList).forEach(f=> pendingFiles.push(f));
+    setStatus('');
+    renderFileChips();
+  }
+
+  dropzone.addEventListener('click', ()=> fileInput.click());
+  dropzone.addEventListener('dragover', e=>{ e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', ()=> dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', e=>{
+    e.preventDefault(); dropzone.classList.remove('drag');
+    if(e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', e=>{
+    if(e.target.files.length) addFiles(e.target.files);
+    fileInput.value = '';
+  });
+
+  // Parses+merges one File object into CASES. Returns {added, skipped} or
+  // throws/returns an error string on failure — used by both the initial
+  // load flow and the "add more data" flow below.
+  async function parseAndMergeFile(file){
+    const rows = await readFileAsRows(file);
+    if(!rows.length) return {error: t('statusEmpty')};
+    const headerIdx = findHeaderRowIdx(rows);
+    const result = parseWorkbookRows(rows, headerIdx);
+    if(result.error) return {error: result.error};
+    if(!result.records.length) return {error: t('statusNoRecords')};
+    const {added, skipped} = mergeRecords(result.records, file.name);
+    loadedFiles.push({name:file.name, addedAt:Date.now()});
+    return {added, skipped};
+  }
+
+  loadBtn.addEventListener('click', async ()=>{
+    if(!pendingFiles.length) return;
+    loadBtn.disabled = true;
+    setStatus(t('statusReading'));
+    CASES = [];
+    loadedFiles = [];
+    try{
+      let totalAdded = 0, totalSkipped = 0;
+      for(const file of pendingFiles){
+        const r = await parseAndMergeFile(file);
+        if(r.error){ setStatus(r.error, true); loadBtn.disabled=false; return; }
+        totalAdded += r.added; totalSkipped += r.skipped;
+      }
+      if(!CASES.length){ setStatus(t('statusNoRecords'), true); loadBtn.disabled=false; return; }
+      const fileWord = pendingFiles.length>1 ? `${pendingFiles.length} ${t('filesWord')}` : pendingFiles[0].name;
+      let msg = `${totalAdded} ${t('statusLoadedMulti')} ${fileWord}`;
+      if(totalSkipped>0) msg += ` (${totalSkipped} ${t('duplicatesSkipped')})`;
+      setStatus(msg);
+      launchDashboard();
+    }catch(err){
+      console.error(err);
+      setStatus(t('statusError') + err.message, true);
+      loadBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('swapFileBtn').addEventListener('click', async ()=>{
+    document.getElementById('dashboardScreen').classList.add('hidden');
+    document.getElementById('uploadScreen').classList.remove('hidden');
+    if(typeof stopMapWindowPlayback === 'function') stopMapWindowPlayback();
+    // "Upload a different file" means starting completely fresh.
+    CASES = [];
+    loadedFiles = [];
+    pendingFiles = [];
+    renderFileChips();
+    fileInput.value = '';
+    setStatus('');
+    state = {mukim:'',jenis:'',status:'',tahun:'',weekMinIdx:null,weekMaxIdx:null};
+  });
+
+  const addMoreBtn = document.getElementById('addMoreDataBtn');
+  const addMoreInput = document.getElementById('addMoreFileInput');
+  if(addMoreBtn && addMoreInput){
+    addMoreBtn.addEventListener('click', ()=> addMoreInput.click());
+    addMoreInput.addEventListener('change', async (e)=>{
+      const files = Array.from(e.target.files);
+      addMoreInput.value = '';
+      if(!files.length) return;
+      let totalAdded = 0, totalSkipped = 0;
+      for(const file of files){
+        try{
+          const r = await parseAndMergeFile(file);
+          if(r.error){ alert(r.error); continue; }
+          totalAdded += r.added; totalSkipped += r.skipped;
+        }catch(err){ console.error(err); alert(t('statusError') + err.message); }
+      }
+      renderLoadedFilesPanel();
+      populateYearFilter();
+      renderAll();
+    });
+  }
+}
+
+function renderLoadedFilesPanel(){
+  const panel = document.getElementById('loadedFilesPanel');
+  if(!panel) return;
+  panel.innerHTML = '';
+  const names = [...new Set(loadedFiles.map(f=>f.name))];
+  names.forEach(name=>{
+    const count = CASES.filter(r=> r._sourceFile === name).length;
+    const chip = document.createElement('span');
+    chip.style.cssText = 'display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;color:#c3dbee;border:1px solid #456580;border-radius:4px;padding:4px 8px;';
+    chip.innerHTML = `<span>${name} (${count})</span>`;
+    const rm = document.createElement('span');
+    rm.textContent = '✕';
+    rm.style.cssText = 'cursor:pointer;color:#f0b08a;';
+    rm.onclick = async ()=>{
+      if(!confirm(t('removeFileConfirm'))) return;
+      CASES = CASES.filter(r=> r._sourceFile !== name);
+      loadedFiles = loadedFiles.filter(f=> f.name !== name);
+      renderLoadedFilesPanel();
+      populateYearFilter();
+      renderAll();
+    };
+    chip.appendChild(rm);
+    panel.appendChild(chip);
+  });
+}
+
+function launchDashboard(){
+  document.getElementById('uploadScreen').classList.add('hidden');
+  document.getElementById('dashboardScreen').classList.remove('hidden');
+
+  const dates = CASES.map(r=>r.onset).sort();
+  const fileNames = [...new Set(loadedFiles.map(f=>f.name))];
+  const fileLabel = fileNames.length>1 ? `${fileNames.length} ${t('filesWord')}` : (fileNames[0] || '—');
+  document.getElementById('genMeta').innerHTML =
+    `${t('fileLabel')}: ${fileLabel}<br>${t('popupOnset')}: ${fmtDate(dates[0])} – ${fmtDate(dates[dates.length-1])} · ${CASES.length} ${t('recordsLabel')}`;
+
+  resetFilterDropdowns();
+  renderLoadedFilesPanel();
+  initFilters();
+  initBasisToggle(); // determines default basis and builds weekMeta + the week-range slider to match
+  initEpiMAOnlyToggle();
+  populateYearFilter(); // must run after initBasisToggle so weekMeta.basis is already set
+  if(!mapObj) initMap();
+  initMapToggle();
+  initMapRapidFilter();
+  initMapWeekRangeSlider();
+  initMapWindowControls();
+  initKdeControls();
+  initClusterSort();
+  initAgeSchemeSelect();
+  initDemoFilters();
+  renderAll();
+}
+
+function resetFilterDropdowns(){
+  ['fMukim','fJenis','fStatus','fTahun'].forEach(id=>{
+    const sel = document.getElementById(id);
+    while(sel.options.length>1) sel.remove(1);
+  });
+}
+
+/* =========================================================
+   2. DATA HELPERS / FILTERS
+   ========================================================= */
+
+function weekKey(rec){ return rec.year + '-' + String(rec.week).padStart(2,'0'); }
+
+// Same date-basis selection as weekBucketsSortedBasis, but returning just
+// the key for a single record — used by filteredCases() so the week-range
+// slider filters by whichever basis (Onset/Notifikasi/Daftar) is currently
+// selected for the Trend Kes Denggi chart, instead of always onset. If the
+// slider filtered by onset while the chart re-buckets by a different date,
+// a week's bar could show a different (and confusing) count than what's
+// actually inside that filtered range.
+function weekKeyForBasis(rec, basis){
+  const f = BASIS_FIELDS[basis];
+  if(f){
+    if(rec[f.year]==null || rec[f.week]==null) return null;
+    return rec[f.year] + '-' + String(rec[f.week]).padStart(2,'0');
+  }
+  return weekKey(rec);
+}
+
+// Groups by trimmed/case-folded/whitespace-collapsed name so that entry
+// inconsistencies (e.g. "SN15 Taman Emas" vs "SN15 TAMAN EMAS", or double
+// spaces) don't fragment the same physical locality into separate counts.
+function normLocalityKey(s){
+  return String(s||'').trim().toUpperCase().replace(/\s+/g,' ');
+}
+
+// Groups Alamat Pekerjaan (workplace/school address) entries that refer to
+// the same place but were typed inconsistently — e.g. "Pelajar SMK Pasir
+// Putih Tawau" / "SMK Pasir Putih (Pagi)" / "SMK Pasir Putih (Petang)" all
+// collapse to "SMK PASIR PUTIH". Strips role prefixes (Pelajar/Guru/...)
+// and session qualifiers (Pagi/Petang), but deliberately does NOT strip a
+// trailing "TAWAU" — some institutions (e.g. "Kolej Vokasional Tawau")
+// genuinely have that as part of their real name, and blanket-stripping it
+// was found to corrupt those into meaningless fragments. This means an
+// entry inconsistently suffixed with "Tawau" for the same place may still
+// end up in a separate bucket from one without it — a known, deliberate
+// trade-off to avoid the worse failure mode.
+function normWorkAddressKey(raw){
+  if(!raw) return '';
+  let s = String(raw).trim().toUpperCase();
+  s = s.replace(/^(PELAJAR|GURU|CIKGU|STAF|PEKERJA|PENGETUA)\s+/,'');
+  const wrapped = s.match(/^\((.+)\)$/);
+  if(wrapped) s = wrapped[1].trim();
+  s = s.replace(/\(\s*(SESI\s+)?(PAGI|PETANG)\s*\)/gi,'');
+  s = s.replace(/\s*\b(SESI\s+)?(PAGI|PETANG)\b\s*$/gi,'');
+  s = s.replace(/\s+/g,' ').trim();
+  return s;
+}
+
+function weekBucketsSorted(data){
+  const buckets = {};
+  data.forEach(r=>{
+    const k = weekKey(r);
+    if(!buckets[k]) buckets[k] = { key:k, recs:[], minDate:r.onset };
+    buckets[k].recs.push(r);
+    if(r.onset < buckets[k].minDate) buckets[k].minDate = r.onset;
+  });
+  return Object.values(buckets).sort((a,b)=> a.minDate < b.minDate ? -1 : (a.minDate > b.minDate ? 1 : 0));
+}
+
+// Same idea as weekBucketsSorted, but selectable by date basis: 'onset'
+// (Tarikh Onset, default) or 'notif' (Tkh Notifikasi, if that column was
+// present in the uploaded file). Records with no notification date are
+// skipped when basis='notif'.
+const BASIS_FIELDS = {
+  notif:  { date:'notif',  year:'year_notif',  week:'week_notif' },
+  daftar: { date:'daftar', year:'year_daftar', week:'week_daftar' },
+};
+function weekBucketsSortedBasis(data, basis){
+  const f = BASIS_FIELDS[basis];
+  if(f){
+    const buckets = {};
+    data.forEach(r=>{
+      if(!r[f.date] || r[f.year]==null || r[f.week]==null) return;
+      const k = r[f.year] + '-' + String(r[f.week]).padStart(2,'0');
+      if(!buckets[k]) buckets[k] = { key:k, recs:[], minDate:r[f.date] };
+      buckets[k].recs.push(r);
+      if(r[f.date] < buckets[k].minDate) buckets[k].minDate = r[f.date];
+    });
+    return Object.values(buckets).sort((a,b)=> a.minDate < b.minDate ? -1 : (a.minDate > b.minDate ? 1 : 0));
+  }
+  return weekBucketsSorted(data);
+}
+
+function fmtDate(iso){
+  const d = new Date(iso+'T00:00:00');
+  const months=['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogo','Sep','Okt','Nov','Dis'];
+  return d.getDate()+' '+months[d.getMonth()]+' '+d.getFullYear();
+}
+function daysBetween(a,b){ return Math.round((new Date(b) - new Date(a)) / 86400000); }
+function hexToRgba(hex, alpha){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function mostCommon(arr){
+  const c = {}; let best=null, bestN=-1;
+  arr.forEach(v=>{ c[v]=(c[v]||0)+1; if(c[v]>bestN){bestN=c[v];best=v;} });
+  return best;
+}
+// Like mostCommon, but groups by a normalized key (e.g. case/whitespace
+// insensitive for locality names) while still returning a natural-looking
+// original value from the winning group, so display text isn't mangled.
+function mostCommonNormalized(arr, keyFn){
+  const groups = {};
+  arr.forEach(v=>{
+    const k = keyFn(v);
+    if(!groups[k]) groups[k] = {};
+    groups[k][v] = (groups[k][v]||0)+1;
+  });
+  let bestKey=null, bestKeyN=-1;
+  Object.entries(groups).forEach(([k,variants])=>{
+    const total = Object.values(variants).reduce((a,b)=>a+b,0);
+    if(total>bestKeyN){ bestKeyN=total; bestKey=k; }
+  });
+  if(bestKey===null) return null;
+  const variants = groups[bestKey];
+  return Object.entries(variants).sort((a,b)=>b[1]-a[1])[0][0];
+}
+
+function filteredCases(){
+  return CASES.filter(r=>{
+    if(state.mukim && r.mukim !== state.mukim) return false;
+    if(state.jenis && r.jenis_kes !== state.jenis) return false;
+    if(state.status){
+      if(state.status === '(Kes Bersendirian)'){ if(r.wabak_status) return false; }
+      else if(r.wabak_status !== state.status) return false;
+    }
+    if(state.tahun){
+      const f = BASIS_FIELDS[weekMeta.basis];
+      const yr = f ? r[f.year] : r.year;
+      if(String(yr) !== state.tahun) return false;
+    }
+    if(state.weekMinIdx!==null && state.weekMaxIdx!==null){
+      const idx = weekMeta.indexOf[weekKeyForBasis(r, weekMeta.basis)];
+      if(idx===undefined || idx<state.weekMinIdx || idx>state.weekMaxIdx) return false;
+    }
+    return true;
+  });
+}
+
+/* ---------- week range slider ---------- */
+function buildWeekMeta(basis){
+  basis = basis || 'onset';
+  const buckets = weekBucketsSortedBasis(CASES, basis);
+  weekMeta.buckets = buckets;
+  weekMeta.basis = basis;
+  weekMeta.indexOf = {};
+  buckets.forEach((b,i)=>{ weekMeta.indexOf[b.key] = i; });
+}
+function weekBucketLabel(b){
+  const [y,w] = b.key.split('-');
+  return `EW${parseInt(w,10)} '${y.slice(2)}`;
+}
+function updateWeekRangeBasisNote(){
+  const basisNoteEl = document.getElementById('weekRangeBasisNote');
+  if(basisNoteEl){
+    const basisLabelKeys = { onset:'basisSliderOnset', notif:'basisSliderNotif', daftar:'basisSliderDaftar' };
+    basisNoteEl.textContent = t(basisLabelKeys[weekMeta.basis] || 'basisSliderOnset');
+  }
+}
+function initWeekRangeSlider(){
+  const n = weekMeta.buckets.length;
+  const minSlider = document.getElementById('weekMinSlider');
+  const maxSlider = document.getElementById('weekMaxSlider');
+  updateWeekRangeBasisNote();
+  const maxIdx = Math.max(n-1, 0);
+  [minSlider, maxSlider].forEach(s=>{ s.min = 0; s.max = maxIdx; });
+  minSlider.value = 0;
+  maxSlider.value = maxIdx;
+  state.weekMinIdx = 0;
+  state.weekMaxIdx = maxIdx;
+  updateWeekRangeUI();
+
+  function onChange(){
+    let lo = +minSlider.value, hi = +maxSlider.value;
+    if(lo > hi){ [lo,hi] = [hi,lo]; }
+    minSlider.value = lo; maxSlider.value = hi;
+    state.weekMinIdx = lo; state.weekMaxIdx = hi;
+    updateWeekRangeUI();
+    renderAll();
+  }
+  minSlider.oninput = onChange;
+  maxSlider.oninput = onChange;
+}
+function updateWeekRangeUI(){
+  const n = weekMeta.buckets.length;
+  if(!n) return;
+  const lo = state.weekMinIdx ?? 0;
+  const hi = state.weekMaxIdx ?? (n-1);
+  const loB = weekMeta.buckets[lo], hiB = weekMeta.buckets[hi];
+  document.getElementById('weekRangeValue').textContent =
+    loB && hiB ? `${weekBucketLabel(loB)} — ${weekBucketLabel(hiB)}` : '';
+  const fill = document.getElementById('wrTrackFill');
+  const pctLo = n>1 ? (lo/(n-1))*100 : 0;
+  const pctHi = n>1 ? (hi/(n-1))*100 : 100;
+  fill.style.left = pctLo+'%';
+  fill.style.width = Math.max(pctHi-pctLo,0)+'%';
+}
+
+/* ---------- map-scoped week range slider ----------
+   Independent of the global week-range filter above — lets you scrub the
+   map/KDE layer to a specific week window without affecting the rest of
+   the dashboard's charts and KPIs. */
+let mapWeekMinIdx = null;
+let mapWeekMaxIdx = null;
+function initMapWeekRangeSlider(){
+  const n = weekMeta.buckets.length;
+  const minSlider = document.getElementById('mapWeekMinSlider');
+  const maxSlider = document.getElementById('mapWeekMaxSlider');
+  if(!minSlider || !maxSlider) return;
+  const maxIdx = Math.max(n-1, 0);
+  [minSlider, maxSlider].forEach(s=>{ s.min = 0; s.max = maxIdx; });
+  minSlider.value = 0;
+  maxSlider.value = maxIdx;
+  mapWeekMinIdx = 0;
+  mapWeekMaxIdx = maxIdx;
+  updateMapWeekRangeUI();
+
+  function onChange(){
+    let lo = +minSlider.value, hi = +maxSlider.value;
+    if(lo > hi){ [lo,hi] = [hi,lo]; }
+    minSlider.value = lo; maxSlider.value = hi;
+    mapWeekMinIdx = lo; mapWeekMaxIdx = hi;
+    updateMapWeekRangeUI();
+    renderMap(filteredCases());
+  }
+  minSlider.oninput = onChange;
+  maxSlider.oninput = onChange;
+}
+function updateMapWeekRangeUI(){
+  const n = weekMeta.buckets.length;
+  const el = document.getElementById('mapWeekRangeValue');
+  const fill = document.getElementById('mapWrTrackFill');
+  if(!n || !el || !fill) return;
+  const lo = mapWeekMinIdx ?? 0;
+  const hi = mapWeekMaxIdx ?? (n-1);
+  const loB = weekMeta.buckets[lo], hiB = weekMeta.buckets[hi];
+  el.textContent = loB && hiB ? `${weekBucketLabel(loB)} — ${weekBucketLabel(hiB)}` : '';
+  const pctLo = n>1 ? (lo/(n-1))*100 : 0;
+  const pctHi = n>1 ? (hi/(n-1))*100 : 100;
+  fill.style.left = pctLo+'%';
+  fill.style.width = Math.max(pctHi-pctLo,0)+'%';
+}
+
+/* ---------- fixed-width sliding window (e.g. "4-week window") ----------
+   Instead of dragging two independent handles, this locks the window width
+   to N weeks and exposes a single position slider (+ optional playback) so
+   you can scrub — or animate — a rolling N-week window across the whole
+   timeline, useful for watching how the outbreak's spatial footprint moved
+   week to week. */
+let mapWindowMode = false;
+let mapWindowSize = 4;
+let mapWindowPos = 0;
+let mapWindowTimer = null;
+
+function mapWindowMaxPos(){
+  const n = weekMeta.buckets.length;
+  return Math.max(n - mapWindowSize, 0);
+}
+function applyMapWindowPos(){
+  const n = weekMeta.buckets.length;
+  if(!n) return;
+  mapWeekMinIdx = mapWindowPos;
+  mapWeekMaxIdx = Math.min(mapWindowPos + mapWindowSize - 1, n-1);
+  updateMapWeekRangeUI();
+  renderMap(filteredCases());
+}
+function stopMapWindowPlayback(){
+  if(mapWindowTimer){ clearInterval(mapWindowTimer); mapWindowTimer = null; }
+  const btn = document.getElementById('mapWindowPlayBtn');
+  if(btn) btn.textContent = t('playBtn');
+}
+function initMapWindowControls(){
+  const toggle = document.getElementById('mapWindowModeToggle');
+  const controls = document.getElementById('mapWindowControls');
+  const sliderWrap = document.getElementById('mapRangeSliderWrap');
+  const sizeInput = document.getElementById('mapWindowSize');
+  const posSlider = document.getElementById('mapWindowPosSlider');
+  const playBtn = document.getElementById('mapWindowPlayBtn');
+  const minSlider = document.getElementById('mapWeekMinSlider');
+  const maxSlider = document.getElementById('mapWeekMaxSlider');
+  if(!toggle) return;
+
+  toggle.checked = false;
+  mapWindowMode = false;
+  stopMapWindowPlayback();
+  if(controls) controls.classList.add('hidden');
+  if(minSlider) minSlider.disabled = false;
+  if(maxSlider) maxSlider.disabled = false;
+  if(sliderWrap) sliderWrap.style.opacity = '1';
+
+  toggle.onchange = ()=>{
+    mapWindowMode = toggle.checked;
+    controls.classList.toggle('hidden', !mapWindowMode);
+    if(minSlider) minSlider.disabled = mapWindowMode;
+    if(maxSlider) maxSlider.disabled = mapWindowMode;
+    if(sliderWrap) sliderWrap.style.opacity = mapWindowMode ? '0.4' : '1';
+    if(mapWindowMode){
+      mapWindowSize = Math.max(1, Math.min(+sizeInput.value || 4, weekMeta.buckets.length || 1));
+      sizeInput.value = mapWindowSize;
+      posSlider.min = 0;
+      posSlider.max = mapWindowMaxPos();
+      mapWindowPos = mapWindowMaxPos(); // default: most recent window
+      posSlider.value = mapWindowPos;
+      applyMapWindowPos();
+    } else {
+      stopMapWindowPlayback();
+      // leave mapWeekMinIdx/mapWeekMaxIdx as the last window — sync handles to match
+      if(minSlider) minSlider.value = mapWeekMinIdx;
+      if(maxSlider) maxSlider.value = mapWeekMaxIdx;
+    }
+  };
+
+  sizeInput.onchange = ()=>{
+    mapWindowSize = Math.max(1, Math.min(+sizeInput.value || 4, weekMeta.buckets.length || 1));
+    sizeInput.value = mapWindowSize;
+    posSlider.max = mapWindowMaxPos();
+    if(mapWindowPos > mapWindowMaxPos()) mapWindowPos = mapWindowMaxPos();
+    posSlider.value = mapWindowPos;
+    if(mapWindowMode) applyMapWindowPos();
+  };
+
+  posSlider.oninput = ()=>{
+    mapWindowPos = +posSlider.value;
+    applyMapWindowPos();
+  };
+
+  playBtn.onclick = ()=>{
+    if(mapWindowTimer){ stopMapWindowPlayback(); return; }
+    if(!mapWindowMode){ toggle.checked = true; toggle.onchange(); }
+    playBtn.textContent = t('pauseBtn');
+    mapWindowTimer = setInterval(()=>{
+      mapWindowPos = mapWindowPos >= mapWindowMaxPos() ? 0 : mapWindowPos + 1;
+      posSlider.value = mapWindowPos;
+      applyMapWindowPos();
+    }, 1100);
+  };
+}
+
+function populateYearFilter(){
+  const fTahun = document.getElementById('fTahun');
+  if(!fTahun) return;
+  while(fTahun.options.length>1) fTahun.remove(1);
+  const f = BASIS_FIELDS[weekMeta.basis];
+  const years = [...new Set(CASES.map(r=> f ? r[f.year] : r.year).filter(y=>y!=null))].sort((a,b)=>b-a);
+  years.forEach(y=>{ const o=document.createElement('option'); o.value=String(y); o.textContent=String(y); fTahun.appendChild(o); });
+  fTahun.value = state.tahun || '';
+  // Year-over-year comparison and the heatmap only make sense with 2+
+  // distinct years present.
+  const section = document.getElementById('yearCompareSection');
+  if(section) section.classList.toggle('hidden', years.length < 2);
+  const heatmapSection = document.getElementById('heatmapSection');
+  if(heatmapSection) heatmapSection.classList.toggle('hidden', years.length < 2);
+  initYearCompareMultiselect(years);
+}
+
+// Populates the "Tahun dipaparkan" checkbox dropdown for the comparison
+// chart, and wires its interactions. Reuses the same searchable-checkbox
+// multiselect pattern (and CSS classes) already built for the Lokaliti
+// filter — kept without a search box here since the year list is short.
+function initYearCompareMultiselect(years){
+  const msBtn = document.getElementById('yearCompareMsBtn');
+  const msPanel = document.getElementById('yearCompareMsPanel');
+  const msList = document.getElementById('yearCompareMsList');
+  const msSelectAll = document.getElementById('yearCompareMsSelectAll');
+  const msClear = document.getElementById('yearCompareMsClear');
+  if(!msBtn || !msPanel || !msList) return;
+
+  // Drop any previously-selected years no longer present in the data
+  // (e.g. after removing a file), keep the rest.
+  yearCompareSelected = new Set([...yearCompareSelected].filter(y=> years.includes(Number(y))));
+
+  msList.innerHTML = '';
+  [...years].sort((a,b)=>b-a).forEach(y=>{
+    const label = document.createElement('label');
+    label.innerHTML = `<input type="checkbox" value="${y}" ${yearCompareSelected.has(String(y))?'checked':''}> <span>${y}</span>`;
+    msList.appendChild(label);
+  });
+
+  const updateBtnLabel = ()=>{
+    const n = yearCompareSelected.size;
+    msBtn.textContent = n===0 ? t('allYears') : `${n} ${t('yearsSelectedWord')}`;
+    msBtn.classList.toggle('has-selection', n>0);
+  };
+  updateBtnLabel();
+
+  msList.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.onchange = ()=>{
+      if(cb.checked) yearCompareSelected.add(cb.value);
+      else yearCompareSelected.delete(cb.value);
+      updateBtnLabel();
+      renderYearComparisonChart();
+    };
+  });
+
+  msSelectAll.onclick = ()=>{
+    msList.querySelectorAll('input[type=checkbox]').forEach(cb=>{ cb.checked=true; yearCompareSelected.add(cb.value); });
+    updateBtnLabel();
+    renderYearComparisonChart();
+  };
+  msClear.onclick = ()=>{
+    msList.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked=false);
+    yearCompareSelected.clear();
+    updateBtnLabel();
+    renderYearComparisonChart();
+  };
+
+  msBtn.onclick = (e)=>{
+    e.stopPropagation();
+    msPanel.classList.toggle('hidden');
+  };
+  msPanel.onclick = (e)=> e.stopPropagation();
+  document.addEventListener('click', ()=> msPanel.classList.add('hidden'));
+}
+function initFilters(){
+  const mukims = [...new Set(CASES.map(r=>r.mukim))].sort();
+  const jenisKes = [...new Set(CASES.map(r=>r.jenis_kes))].sort();
+  const statuses = [...new Set(CASES.map(r=>r.wabak_status).filter(Boolean))].sort();
+
+  const fMukim = document.getElementById('fMukim');
+  mukims.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; fMukim.appendChild(o); });
+
+  const fJenis = document.getElementById('fJenis');
+  jenisKes.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; fJenis.appendChild(o); });
+
+  const fStatus = document.getElementById('fStatus');
+  statuses.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; fStatus.appendChild(o); });
+  const oNone = document.createElement('option'); oNone.value='(Kes Bersendirian)'; oNone.textContent=t('singleCaseNoWabak');
+  fStatus.appendChild(oNone);
+
+  const fTahun = document.getElementById('fTahun');
+
+  [fMukim,fJenis,fStatus,fTahun].forEach(sel=>{
+    sel.onchange = ()=>{
+      state.mukim = fMukim.value; state.jenis = fJenis.value; state.status = fStatus.value; state.tahun = fTahun.value;
+      renderAll();
+    };
+  });
+  document.getElementById('resetFilters').onclick = ()=>{
+    fMukim.value=''; fJenis.value=''; fStatus.value=''; fTahun.value='';
+    state.mukim=''; state.jenis=''; state.status=''; state.tahun='';
+    const n = weekMeta.buckets.length;
+    const maxIdx = Math.max(n-1,0);
+    document.getElementById('weekMinSlider').value = 0;
+    document.getElementById('weekMaxSlider').value = maxIdx;
+    state.weekMinIdx = 0; state.weekMaxIdx = maxIdx;
+    updateWeekRangeUI();
+    renderAll();
+  };
+}
+
+/* =========================================================
+   3. RENDERING (ticker, KPIs, charts, map, table)
+   ========================================================= */
+
+function renderKPI(data){
+  const localities = new Set(data.map(r=>normLocalityKey(r.lokaliti)));
+  const clusters = buildClusters(data);
+
+  // Wabak Aktif (Semasa): clusters not yet officially closed (status is not
+  // "Wabak Tamat") — i.e. still open as of this extract.
+  const wabakAktif = clusters.filter(c=>c.status!=='Wabak Tamat').length;
+
+  // Kumulatif Wabak: total distinct outbreak clusters over the whole period.
+  const kumulatifWabak = clusters.length;
+
+  // Week-over-week comparison (current week vs last week), by Tarikh Daftar
+  // — falls back to Tarikh Onset if no registration-date data is present.
+  const daftarBuckets = weekBucketsSortedBasis(data, 'daftar');
+  const usingDaftar = daftarBuckets.length > 0;
+  const buckets = usingDaftar ? daftarBuckets : weekBucketsSorted(data);
+  const basisNote = usingDaftar ? 'Daftar' : 'Onset';
+  const currentBucket = buckets[buckets.length-1];
+  const lastWeekBucket = buckets[buckets.length-2];
+  const currentCount = currentBucket ? currentBucket.recs.length : 0;
+  const lastWeekCount = lastWeekBucket ? lastWeekBucket.recs.length : null;
+  const trend = (lastWeekCount===null) ? null : (lastWeekCount===0 ? null : Math.round(((currentCount-lastWeekCount)/lastWeekCount)*100));
+  const currentWeekLabel = currentBucket ? currentBucket.key.split('-')[1] : '-';
+
+  // Bilangan Kes Wabak / Bilangan Single Kes: breakdown of the total case
+  // count by Jenis Kes — cases linked to an outbreak cluster vs standalone
+  // cases. These two always sum to Jumlah Kes.
+  const kesWabak = data.filter(r=>r.jenis_kes==='Wabak').length;
+  const kesSingle = data.length - kesWabak;
+
+  // Bilangan Kematian: a case counts as a death if EITHER the initial or
+  // final case status is recorded as "Mati" — a case can be logged as
+  // deceased at intake (Status Awal Kes) even if Status Akhir Kes hasn't
+  // been updated yet, or vice versa, so checking only one field would
+  // undercount. Both columns are optional in the source data; if neither
+  // is present, every record's value is null and this simply comes out 0
+  // rather than erroring.
+  const deaths = data.filter(r=> r.status_awal==='Mati' || r.status_akhir==='Mati').length;
+
+  const kpis = [
+    {lbl:t('kpiJumlahKes'), num:data.length, cls:''},
+    {lbl:t('kpiKesWabak'), num:kesWabak, cls:''},
+    {lbl:t('kpiKesSingle'), num:kesSingle, cls:''},
+    {lbl:t('kpiWabakAktif'), num:wabakAktif, cls: wabakAktif>0?'alert':'ok'},
+    {lbl:t('kpiKumulatifWabak'), num:kumulatifWabak, cls:''},
+    {lbl:t('kpiDeaths'), num:deaths, cls: deaths>0?'alert':''},
+    {lbl:t('kpiLokalitiTerjejas'), num:localities.size, cls:''},
+    {lbl:`${t('kpiKesWeekTrend')} EW${currentWeekLabel} ${basisNote} (${t('vsLastWeek')})`, num:currentCount + (trend!==null? `  ${trend>=0?'▲':'▼'}${Math.abs(trend)}%`:''), cls: trend>0?'alert': (trend<0?'ok':'')},
+  ];
+  const row = document.getElementById('kpiRow');
+  row.innerHTML='';
+  kpis.forEach(k=>{
+    const div=document.createElement('div');
+    div.className='kpi'+(k.cls?(' '+k.cls):'');
+    div.innerHTML = `<div class="num">${k.num}</div><div class="lbl">${k.lbl}</div>`;
+    row.appendChild(div);
+  });
+}
+
+let epiCurveBasis = 'daftar';
+let showMAOnly = false;
+function renderEpiCurve(data){
+  const buckets = weekBucketsSortedBasis(data, epiCurveBasis);
+  // Include the year in every label (e.g. "EW1 '25") — with multi-year data
+  // loaded, a bare "EW1" repeating every ~52 bars is genuinely ambiguous
+  // about which year it belongs to.
+  const labels = buckets.map(weekBucketLabel);
+  const satu = buckets.map(b=> b.recs.filter(r=>r.jenis_kes!=='Wabak').length);
+  const wabak = buckets.map(b=> b.recs.filter(r=>r.jenis_kes==='Wabak').length);
+  const totals = buckets.map(b=> b.recs.length);
+  const ma = totals.map((_,i)=>{
+    const start = Math.max(0,i-2);
+    const slice = totals.slice(start,i+1);
+    return +(slice.reduce((a,b)=>a+b,0)/slice.length).toFixed(1);
+  });
+
+  // Dark diamond marker above any week that had at least one death (Status
+  // Awal Kes or Status Akhir Kes = "Mati"). Placed above whichever is
+  // taller — the bar or the moving-average line — so it never sits under
+  // either, with a small padding proportional to the chart's own scale.
+  const deaths = buckets.map(b=> b.recs.filter(r=> r.status_awal==='Mati' || r.status_akhir==='Mati').length);
+  const maxVal = Math.max(1, ...totals, ...ma);
+  const markerOffset = maxVal * 0.06;
+  const deathMarkers = buckets.map((b,i)=> deaths[i]>0 ? Math.max(totals[i], ma[i]) + markerOffset : null);
+  const hasDeaths = deaths.some(d=>d>0);
+
+  // Index of each bucket where the calendar year changes from the previous
+  // one — used to draw a vertical divider so year boundaries are visible
+  // at a glance rather than having to read every rotated x-axis label.
+  const yearBoundaryIdxs = [];
+  buckets.forEach((b,i)=>{
+    if(i===0) return;
+    const prevYear = buckets[i-1].key.split('-')[0];
+    const thisYear = b.key.split('-')[0];
+    if(thisYear !== prevYear) yearBoundaryIdxs.push({idx:i, year:thisYear});
+  });
+  const yearDividerPlugin = {
+    id: 'yearDividerPlugin',
+    afterDraw(chart){
+      if(!yearBoundaryIdxs.length) return;
+      const {ctx, chartArea, scales} = chart;
+      const xScale = scales.x;
+      ctx.save();
+      yearBoundaryIdxs.forEach(({idx,year})=>{
+        const x = xScale.getPixelForValue(idx) - (xScale.getPixelForValue(1)-xScale.getPixelForValue(0))/2;
+        ctx.strokeStyle = COLORS.muted;
+        ctx.setLineDash([4,3]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, chartArea.top);
+        ctx.lineTo(x, chartArea.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = COLORS.muted;
+        ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
+        ctx.textAlign = 'left';
+        ctx.fillText(year, x+4, chartArea.top+11);
+      });
+      ctx.restore();
+    }
+  };
+
+  const basisLabelKeys = { onset:'basisNoteOnset', notif:'basisNoteNotif', daftar:'basisNoteDaftar' };
+  const basisLabel = t(basisLabelKeys[epiCurveBasis] || 'basisNoteOnset');
+  document.getElementById('epiNote').textContent = `${buckets.length} ${t('weekEpidShown')} · ${basisLabel}`;
+
+  if(charts.epi) charts.epi.destroy();
+  const ctx = document.getElementById('epiCurve').getContext('2d');
+  charts.epi = new Chart(ctx, {
+    plugins: yearBoundaryIdxs.length ? [yearDividerPlugin] : [],
+    data:{
+      labels,
+      datasets:[
+        {type:'bar', label:t('singleCaseDataset'), data:satu, backgroundColor:COLORS.teal, stack:'s', hidden:showMAOnly},
+        {type:'bar', label:t('wabakCaseDataset'), data:wabak, backgroundColor:COLORS.red, stack:'s', hidden:showMAOnly},
+        {type:'line', label:t('movingAvgDataset'), data:ma, borderColor:COLORS.accent, borderWidth:2.5, pointRadius:0, tension:0.3},
+        {type:'line', label:t('deathMarkerDataset'), data:deathMarkers, showLine:false, pointStyle:'rectRot',
+          pointRadius:6, pointHoverRadius:8, backgroundColor:COLORS.ink, borderColor:'#fff', borderWidth:1.5,
+          hidden: !hasDeaths}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index', intersect:false},
+      scales:{
+        x:{stacked:true, ticks:{maxRotation:60, minRotation:60, font:{size:9}}},
+        y:{stacked:true, beginAtZero:true, title:{display:true,text:t('caseCountAxis')}}
+      },
+      plugins:{
+        legend:{position:'top', labels:{boxWidth:12, font:{size:11}, filter: item=> hasDeaths || item.text !== t('deathMarkerDataset')}},
+        tooltip:{callbacks:{label:c=>{
+          if(c.dataset.label === t('deathMarkerDataset')){
+            const n = deaths[c.dataIndex];
+            return n>0 ? `${n} ${t('deathMarkerTooltip')}` : null;
+          }
+          return `${c.dataset.label}: ${c.raw}`;
+        }}}
+      }
+    }
+  });
+}
+
+function colorForCase(r){
+  if(r.jenis_kes !== 'Wabak') return COLORS.teal;
+  if(r.wabak_status === 'Wabak Terkawal') return COLORS.red;
+  return COLORS.amber;
+}
+function initMap(){
+  // gestureHandling (plugin) replaces manual scrollWheelZoom logic: on touch
+  // devices it allows normal one/two-finger pan and pinch-zoom; on desktop
+  // it requires Ctrl+scroll or trackpad pinch to zoom (showing a brief hint
+  // if you scroll without it), so a plain page-scroll over the map still
+  // scrolls the page instead of zooming it.
+  mapObj = L.map('map', {gestureHandling:true, scrollWheelZoom:false}).setView([5.92,116.10], 11);
+  // OpenStreetMap standard tiles — fully keyless. (Previously used CARTO's
+  // basemaps.cartocdn.com "light_all" style, but CARTO began requiring an
+  // API key for anonymous tile requests from ~28 Aug 2026 onward; without
+  // one, tiles still load but come back watermarked "API KEY REQUIRED"
+  // rather than failing outright. Switching providers avoids reintroducing
+  // an external key dependency into what's meant to be a self-contained
+  // offline tool. Note: standard OSM tiles don't serve retina @2x tiles the
+  // way CARTO did, so the {r} placeholder is dropped here.)
+  // OSM's tile servers return 403 when the page is opened from a local file (no Referer header),
+  // so the default is Esri World Street Map (works locally and online); OpenStreetMap stays selectable
+  // for when the file is hosted online (e.g. GitHub Pages).
+  const baseEsri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{
+    attribution:'Tiles &copy; Esri', maxZoom:19 });
+  const baseOsm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom:19 });
+  baseEsri.addTo(mapObj);
+  L.control.layers({'Street Map (Esri)':baseEsri,'OpenStreetMap':baseOsm},null,{collapsed:true,position:'topright'}).addTo(mapObj);
+  clusterLayer = L.markerClusterGroup({maxClusterRadius:40});
+  mapObj.addLayer(clusterLayer);
+}
+let mapViewMode = 'all';
+let mapRapidFilter = '';
+let lastMapData = [];
+// Rough bounding box covering all of Malaysia (Peninsular + Sabah/Sarawak),
+// generous enough to never exclude a genuinely valid case anywhere in the
+// country, but tight enough to catch obvious data-entry errors — swapped
+// lat/lon, a stray digit, decimal-point slips, etc. — that would otherwise
+// land a marker in Siberia or the South China Sea and wreck the map's
+// auto-zoom for everyone (fitBounds includes every plotted point, so a
+// single bad coordinate can zoom the whole view out to a useless scale).
+const MY_BOUNDS = { latMin:0.5, latMax:7.5, lonMin:99.0, lonMax:120.0 };
+function isValidMYCoord(lat, lon){
+  return lat>=MY_BOUNDS.latMin && lat<=MY_BOUNDS.latMax && lon>=MY_BOUNDS.lonMin && lon<=MY_BOUNDS.lonMax;
+}
+function renderMap(data){
+  clusterLayer.clearLayers();
+  const pts = [];
+  let outlierCount = 0;
+  const displayData = data.filter(r=>{
+    if(mapViewMode === 'single' && r.jenis_kes === 'Wabak') return false;
+    if(mapViewMode === 'cluster' && r.jenis_kes !== 'Wabak') return false;
+    if(mapRapidFilter && r.ujian_rapid_kategori !== mapRapidFilter) return false;
+    if(mapWeekMinIdx!==null && mapWeekMaxIdx!==null){
+      const idx = weekMeta.indexOf[weekKeyForBasis(r, weekMeta.basis)];
+      if(idx===undefined || idx<mapWeekMinIdx || idx>mapWeekMaxIdx) return false;
+    }
+    return true;
+  });
+  displayData.forEach(r=>{
+    if(!r.lat || !r.lon) return;
+    if(!isValidMYCoord(r.lat, r.lon)){ outlierCount++; return; }
+    const color = colorForCase(r);
+    const icon = L.divIcon({
+      className:'', html:`<div style="width:11px;height:11px;border-radius:50%;background:${color};border:1px solid rgba(255,255,255,0.8);"></div>`,
+      iconSize:[11,11]
+    });
+    const m = L.marker([r.lat, r.lon], {icon});
+    m.bindPopup(`<b>${r.lokaliti}</b><br>${r.mukim}<br>${t('popupOnset')}: ${fmtDate(r.onset)}<br>${t('popupJenis')}: ${r.jenis_kes}${r.wabak_no?('<br>'+t('popupWabakNo')+': '+r.wabak_no):''}${r.wabak_status?('<br>'+t('popupStatus')+': '+r.wabak_status):''}${r.ujian_rapid_kategori?('<br>'+t('popupUjianRapid')+': '+r.ujian_rapid_kategori):''}`);
+    clusterLayer.addLayer(m);
+    pts.push([r.lat, r.lon]);
+  });
+  if(pts.length){
+    try{ mapObj.fitBounds(pts, {maxZoom:13, padding:[20,20]}); }catch(e){}
+  }
+  const outlierNoteEl = document.getElementById('mapOutlierNote');
+  if(outlierNoteEl){
+    outlierNoteEl.textContent = outlierCount>0 ? `⚠ ${outlierCount} ${t('outlierCoordsHidden')}` : '';
+    outlierNoteEl.classList.toggle('hidden', outlierCount===0);
+  }
+  lastMapData = displayData;
+  renderKDE(displayData);
+}
+function initMapToggle(){
+  const wrap = document.getElementById('mapToggle');
+  if(!wrap) return;
+  mapViewMode = 'all'; // reset on each new file load
+  wrap.querySelectorAll('.basis-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.mode==='all');
+    btn.onclick = ()=>{
+      mapViewMode = btn.dataset.mode;
+      wrap.querySelectorAll('.basis-btn').forEach(b=> b.classList.toggle('active', b===btn));
+      renderMap(filteredCases());
+    };
+  });
+}
+function initMapRapidFilter(){
+  const sel = document.getElementById('mapRapidFilter');
+  if(!sel) return;
+  mapRapidFilter = ''; // reset on each new file load
+  while(sel.options.length>1) sel.remove(1);
+  sel.value = '';
+  const present = new Set(CASES.map(r=>r.ujian_rapid_kategori).filter(Boolean));
+  RAPID_ORDER.filter(c=> present.has(c)).forEach(cat=>{
+    const o = document.createElement('option');
+    o.value = cat; o.textContent = cat;
+    sel.appendChild(o);
+  });
+  sel.onchange = ()=>{
+    mapRapidFilter = sel.value;
+    renderMap(filteredCases());
+  };
+}
+
+/* ---------- KDE spatial density layer ----------
+   True 2D kernel density estimation via d3.contourDensity(), computed on
+   screen-pixel coordinates and redrawn on pan/zoom. This mirrors what
+   MASS::kde2d / ks::kde would produce in R: a Gaussian-kernel density
+   surface over the case locations, shown as filled contour bands. */
+let kdeVisible = false;
+let kdeBandwidth = 35;
+let kdeSvg = null;
+
+function ensureKdeSvg(){
+  if(kdeSvg && document.getElementById('map').contains(kdeSvg)) return kdeSvg;
+  const mapContainer = document.getElementById('map');
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('id','kdeSvgLayer');
+  svg.style.position = 'absolute';
+  svg.style.top = '0'; svg.style.left = '0';
+  svg.style.zIndex = '450'; // above tiles, below markers (markerPane is 600)
+  svg.style.pointerEvents = 'none';
+  mapContainer.appendChild(svg);
+  kdeSvg = svg;
+  return svg;
+}
+function clearKDE(){
+  if(kdeSvg) kdeSvg.innerHTML = '';
+  const legend = document.getElementById('kdeLegend');
+  if(legend) legend.classList.add('hidden');
+}
+function renderKdeLegend(color, maxV){
+  const el = document.getElementById('kdeColorScale');
+  if(!el) return;
+  el.innerHTML = '';
+  const steps = 6;
+  for(let i=0;i<=steps;i++){
+    const v = (i/steps)*maxV;
+    const sw = document.createElement('span');
+    sw.style.width='14px'; sw.style.height='10px'; sw.style.display='inline-block';
+    sw.style.background = color(v);
+    el.appendChild(sw);
+  }
+}
+function renderKDE(data){
+  if(!kdeVisible || !mapObj || typeof d3 === 'undefined'){ clearKDE(); return; }
+  const svg = ensureKdeSvg();
+  const size = mapObj.getSize();
+  svg.setAttribute('width', size.x);
+  svg.setAttribute('height', size.y);
+  svg.setAttribute('viewBox', `0 0 ${size.x} ${size.y}`);
+
+  const pts = data.filter(r=>r.lat && r.lon && isValidMYCoord(r.lat, r.lon)).map(r=>{
+    const p = mapObj.latLngToContainerPoint([r.lat, r.lon]);
+    return [p.x, p.y];
+  });
+  if(pts.length < 8){ clearKDE(); return; }
+
+  const contours = d3.contourDensity()
+    .x(d=>d[0]).y(d=>d[1])
+    .size([size.x, size.y])
+    .bandwidth(kdeBandwidth)
+    .thresholds(8)
+    (pts);
+  const maxV = d3.max(contours, d=>d.value) || 1;
+  const color = d3.scaleSequential(d3.interpolateYlOrRd).domain([0, maxV]);
+  const pathGen = d3.geoPath();
+
+  const svgSel = d3.select(svg);
+  svgSel.selectAll('path').remove();
+  svgSel.selectAll('path')
+    .data(contours)
+    .enter().append('path')
+    .attr('d', pathGen)
+    .attr('fill', d=>color(d.value))
+    .attr('fill-opacity', 0.65)
+    .attr('stroke', d=>color(d.value))
+    .attr('stroke-width', 0.5)
+    .attr('stroke-opacity', 0.85);
+
+  renderKdeLegend(color, maxV);
+  const legend = document.getElementById('kdeLegend');
+  if(legend) legend.classList.remove('hidden');
+}
+let kdeControlsWired = false;
+function initKdeControls(){
+  const btn = document.getElementById('kdeToggleBtn');
+  const bwWrap = document.getElementById('kdeBandwidthWrap');
+  const bwSlider = document.getElementById('kdeBandwidth');
+  const bwVal = document.getElementById('kdeBandwidthVal');
+  if(!btn || kdeControlsWired) return;
+  kdeControlsWired = true;
+  btn.addEventListener('click', ()=>{
+    kdeVisible = !kdeVisible;
+    btn.textContent = kdeVisible ? t('kdeOn') : t('kdeOff');
+    btn.classList.toggle('active', kdeVisible);
+    if(bwWrap) bwWrap.classList.toggle('hidden', !kdeVisible);
+    renderKDE(lastMapData);
+  });
+  if(bwSlider){
+    bwSlider.addEventListener('input', ()=>{
+      kdeBandwidth = +bwSlider.value;
+      if(bwVal) bwVal.textContent = kdeBandwidth + 'px';
+      renderKDE(lastMapData);
+    });
+  }
+  if(mapObj) mapObj.on('moveend zoomend', ()=> renderKDE(lastMapData));
+}
+
+function renderMukimChart(data){
+  const byMukim = {};
+  data.forEach(r=>{ byMukim[r.mukim] = (byMukim[r.mukim]||0)+1; });
+  const entries = Object.entries(byMukim).sort((a,b)=>b[1]-a[1]);
+  if(charts.mukim) charts.mukim.destroy();
+  const ctx = document.getElementById('mukimChart').getContext('2d');
+  charts.mukim = new Chart(ctx,{
+    type:'bar',
+    data:{ labels:entries.map(e=>e[0]), datasets:[{label:t('caseCountAxis'), data:entries.map(e=>e[1]), backgroundColor:COLORS.tealDark}] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true}} }
+  });
+}
+
+function buildClusters(data){
+  const groups = {};
+  data.forEach(r=>{
+    if(!r.wabak_no) return;
+    if(!groups[r.wabak_no]) groups[r.wabak_no]=[];
+    groups[r.wabak_no].push(r);
+  });
+  return Object.entries(groups).map(([wabak_no, recs])=>{
+    // Notification dates (Tkh Notifikasi). Displayed "Notifikasi
+    // Pertama/Terkini" columns still show the literal first/last case — but
+    // Tempoh (below) does not start counting from the first case. Onset is
+    // used only as a fallback for the rare cluster with no notif dates at all.
+    const notifDates = recs.filter(r=>r.notif).map(r=>r.notif).sort();
+    const onsets = recs.map(r=>r.onset).sort();
+    const hasNotif = notifDates.length > 0;
+    const rangeStart = hasNotif ? notifDates[0] : onsets[0];
+    const rangeEnd = hasNotif ? notifDates[notifDates.length-1] : onsets[onsets.length-1];
+
+    // Tempoh (duration): the first notified case is just a single case, not
+    // yet a "wabak". It only becomes a wabak once a SECOND case is notified
+    // in the same locality — that second case's notification date is "Day
+    // 1" of the outbreak. The outbreak is then only confirmed Tamat 14 days
+    // after the LAST notified case. So Tempoh runs from the second case's
+    // notification date through 14 days past the last case — not from the
+    // first case.
+    //
+    // If the wabak is STILL ACTIVE (fewer than 14 days have passed since
+    // the last notified case, as of today), we can't apply that 14-day
+    // closure buffer yet — we don't know the true end date. Instead Tempoh
+    // is simply how long it's been running so far: Day 1 through today.
+    const now = new Date();
+    const daysSinceLastCase = Math.floor((now.getTime() - new Date(rangeEnd+'T00:00:00').getTime()) / 86400000);
+    const isStillActive = daysSinceLastCase < 14;
+
+    let duration, dayOne;
+    if(notifDates.length >= 2){
+      dayOne = notifDates[1];
+      if(isStillActive){
+        duration = Math.floor((now.getTime() - new Date(dayOne+'T00:00:00').getTime()) / 86400000);
+      } else {
+        duration = daysBetween(dayOne, rangeEnd) + 14;
+      }
+    } else {
+      // Only one notified case on record — no second case has triggered a
+      // wabak yet; treat as just the 14-day closure window.
+      dayOne = null;
+      duration = 14;
+    }
+
+    // Classification is driven directly by this same Tempoh value (the one
+    // shown in the cluster table), not a separate calculation:
+    //   Wabak Terkawal      : Tempoh <= 14 hari
+    //   Wabak Tidak Terkawal: Tempoh 15–30 hari
+    //   Hotspot             : Tempoh > 30 hari (takes priority — see below)
+    const officialStatus = duration <= 14 ? 'Wabak Terkawal' : 'Wabak Tidak Terkawal';
+    const isHotspot = duration > 30;
+
+    return {
+      wabak_no,
+      mukim: mostCommon(recs.map(r=>r.mukim)),
+      lokaliti: mostCommonNormalized(recs.map(r=>r.lokaliti), normLocalityKey),
+      n: recs.length,
+      start: rangeStart,
+      end: rangeEnd,
+      secondNotif: dayOne,
+      duration,
+      status: mostCommon(recs.map(r=>r.wabak_status)),
+      officialStatus,
+      isHotspot,
+    };
+  });
+}
+function statusPillClass(s){
+  if(s==='Wabak Tamat') return 'tamat';
+  if(s==='Wabak Terkawal') return 'terkawal';
+  return 'aktif';
+}
+
+let clusterTableExpanded = false;
+function renderClusterTable(data){
+  const clusters = buildClusters(data);
+  clusters.sort((a,b)=>{
+    let av=a[clusterSort.key], bv=b[clusterSort.key];
+    if(typeof av==='string') { av=av.toLowerCase(); bv=bv.toLowerCase(); }
+    if(av<bv) return clusterSort.dir==='asc'?-1:1;
+    if(av>bv) return clusterSort.dir==='asc'?1:-1;
+    return 0;
+  });
+  document.getElementById('clusterNote').textContent = `${clusters.length} ${t('clustersIdentified')}`;
+  const ROWS_COLLAPSED = 15;
+  const showAll = clusterTableExpanded || clusters.length <= ROWS_COLLAPSED;
+  const visible = showAll ? clusters : clusters.slice(0, ROWS_COLLAPSED);
+  const tbody = document.querySelector('#clusterTable tbody');
+  tbody.innerHTML='';
+  visible.forEach((c,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--muted);font-family:var(--mono);">${i+1}</td>
+      <td>${c.wabak_no}</td>
+      <td>${c.mukim}</td>
+      <td>${c.lokaliti}</td>
+      <td>${c.n}</td>
+      <td>${fmtDate(c.start)}</td>
+      <td>${c.secondNotif ? fmtDate(c.secondNotif) : '—'}</td>
+      <td>${fmtDate(c.end)}</td>
+      <td>${c.duration}</td>
+      <td><span class="pill ${statusPillClass(c.status)}">${c.status||'—'}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  const moreBtn = document.getElementById('clusterShowMoreBtn');
+  if(moreBtn){
+    if(clusters.length <= ROWS_COLLAPSED){
+      moreBtn.classList.add('hidden');
+    } else {
+      moreBtn.classList.remove('hidden');
+      moreBtn.textContent = showAll ? t('clusterShowLess') : t('clusterShowMoreTemplate').replace('{n}', clusters.length - ROWS_COLLAPSED);
+      moreBtn.onclick = ()=>{
+        clusterTableExpanded = !clusterTableExpanded;
+        renderClusterTable(data);
+      };
+    }
+  }
+}
+function syncClusterSortControls(){
+  const sel = document.getElementById('clusterSortSelect');
+  const dirBtn = document.getElementById('clusterSortDirBtn');
+  if(sel) sel.value = clusterSort.key;
+  if(dirBtn) dirBtn.textContent = clusterSort.dir==='desc' ? t('sortDesc') : t('sortAsc');
+}
+function initClusterSort(){
+  document.querySelectorAll('#clusterTable th').forEach(th=>{
+    th.onclick = ()=>{
+      const k = th.dataset.k;
+      if(clusterSort.key===k) clusterSort.dir = clusterSort.dir==='asc'?'desc':'asc';
+      else { clusterSort.key=k; clusterSort.dir='desc'; }
+      syncClusterSortControls();
+      renderClusterTable(filteredCases());
+    };
+  });
+  const sel = document.getElementById('clusterSortSelect');
+  const dirBtn = document.getElementById('clusterSortDirBtn');
+  if(sel){
+    sel.onchange = ()=>{
+      clusterSort.key = sel.value;
+      renderClusterTable(filteredCases());
+    };
+  }
+  if(dirBtn){
+    dirBtn.onclick = ()=>{
+      clusterSort.dir = clusterSort.dir==='asc'?'desc':'asc';
+      syncClusterSortControls();
+      renderClusterTable(filteredCases());
+    };
+  }
+  syncClusterSortControls();
+}
+
+function initEpiMAOnlyToggle(){
+  const cb = document.getElementById('epiMAOnlyToggle');
+  if(!cb) return;
+  cb.checked = showMAOnly;
+  cb.onchange = ()=>{
+    showMAOnly = cb.checked;
+    renderEpiCurve(filteredCases());
+  };
+}
+function initBasisToggle(){
+  const wrap = document.getElementById('basisToggle');
+  if(!wrap) return;
+  const availability = {
+    notif:  CASES.some(r=> r.notif && r.year_notif!=null && r.week_notif!=null),
+    daftar: CASES.some(r=> r.daftar && r.year_daftar!=null && r.week_daftar!=null),
+  };
+  epiCurveBasis = availability.daftar ? 'daftar' : 'onset'; // reset on each new file load
+  // Keep the week-range slider on the SAME clock as the chart — filtering
+  // by (e.g.) onset week while the chart re-buckets by daftar week would
+  // silently show a different case count in a given week's bar than what's
+  // actually inside the filtered range.
+  buildWeekMeta(epiCurveBasis);
+  initWeekRangeSlider();
+  const missingLabel = { notif:t('noNotifCol'), daftar:t('noDaftarCol') };
+  wrap.querySelectorAll('.basis-btn').forEach(btn=>{
+    const basis = btn.dataset.basis;
+    btn.disabled = false;
+    btn.classList.toggle('active', basis===epiCurveBasis);
+    btn.onclick = null;
+    btn.title = '';
+    if(basis !== 'onset' && availability[basis] === false){
+      btn.disabled = true;
+      btn.title = missingLabel[basis] || '';
+      return;
+    }
+    btn.onclick = ()=>{
+      epiCurveBasis = basis;
+      wrap.querySelectorAll('.basis-btn').forEach(b=> b.classList.toggle('active', b===btn));
+      buildWeekMeta(basis);
+      initWeekRangeSlider();
+      populateYearFilter();
+      renderAll();
+    };
+  });
+}
+
+/* ---------- demographics section local filter ----------
+   Independent of the global filters above and the map's own filters — lets
+   you narrow the 6 demographic/occupation charts to a specific case type,
+   a single outbreak episode, or one-or-more localities, without affecting
+   the rest of the dashboard (epi curve, map, KPIs, cluster table, etc). */
+let demoFilters = { jenis:'', wabakNo:'', lokaliti: new Set() };
+function demoFilteredCases(data){
+  return data.filter(r=>{
+    if(demoFilters.jenis === 'single' && r.jenis_kes === 'Wabak') return false;
+    if(demoFilters.jenis === 'wabak' && r.jenis_kes !== 'Wabak') return false;
+    if(demoFilters.wabakNo && String(r.wabak_no) !== demoFilters.wabakNo) return false;
+    if(demoFilters.lokaliti.size && !demoFilters.lokaliti.has(normLocalityKey(r.lokaliti))) return false;
+    return true;
+  });
+}
+function initDemoFilters(){
+  const jenisSel = document.getElementById('demoJenisFilter');
+  const wabakSel = document.getElementById('demoWabakFilter');
+  const msBtn = document.getElementById('lokalitiMsBtn');
+  const msPanel = document.getElementById('lokalitiMsPanel');
+  const msSearch = document.getElementById('lokalitiMsSearch');
+  const msList = document.getElementById('lokalitiMsList');
+  const msSelectAll = document.getElementById('lokalitiMsSelectAll');
+  const msClear = document.getElementById('lokalitiMsClear');
+  const resetBtn = document.getElementById('demoFilterReset');
+  if(!jenisSel || !wabakSel || !msBtn || !msPanel) return;
+
+  // reset dropdown/selection state (in case of file swap) then repopulate
+  while(wabakSel.options.length>1) wabakSel.remove(1);
+  demoFilters = { jenis:'', wabakNo:'', lokaliti: new Set() };
+  jenisSel.value = ''; wabakSel.value = '';
+
+  // Episod Wabak options: one per distinct Wabak No, labelled with its
+  // main locality and case count. Sorted by Wabak No descending — since
+  // Wabak No is assigned sequentially, this puts the most recently opened
+  // outbreak episode at the top.
+  const clusters = buildClusters(CASES).sort((a,b)=>Number(b.wabak_no)-Number(a.wabak_no));
+  clusters.forEach(c=>{
+    const o = document.createElement('option');
+    o.value = String(c.wabak_no);
+    o.textContent = `${c.wabak_no} — ${c.lokaliti} (${c.n} ${t('caseWord')})`;
+    wabakSel.appendChild(o);
+  });
+
+  // Lokaliti checkbox list: distinct localities, sorted by case count
+  // descending, each as its own row with a live case count.
+  const byLoc = {};
+  CASES.forEach(r=>{
+    const key = normLocalityKey(r.lokaliti);
+    if(!key) return;
+    if(!byLoc[key]) byLoc[key] = {count:0, label:r.lokaliti};
+    byLoc[key].count++;
+  });
+  const locEntries = Object.entries(byLoc).sort((a,b)=>b[1].count-a[1].count);
+  msList.innerHTML = '';
+  locEntries.forEach(([key,info])=>{
+    const label = document.createElement('label');
+    label.dataset.searchText = info.label.toLowerCase();
+    label.innerHTML = `<input type="checkbox" value="${key}"> <span>${info.label}</span> <span class="cnt">${info.count}</span>`;
+    msList.appendChild(label);
+  });
+
+  const updateMsButtonLabel = ()=>{
+    const n = demoFilters.lokaliti.size;
+    msBtn.textContent = n===0 ? t('allLocalities') : `${n} ${t('localitiesSelected')}`;
+    msBtn.classList.toggle('has-selection', n>0);
+  };
+  updateMsButtonLabel();
+
+  const applyAndRender = ()=>{
+    demoFilters.jenis = jenisSel.value;
+    demoFilters.wabakNo = wabakSel.value;
+    updateMsButtonLabel();
+    const data = filteredCases();
+    const demoData = demoFilteredCases(data);
+    renderAgeChart(demoData);
+    renderGenderChart(demoData);
+    renderEthnicChart(demoData);
+    renderJobCategoryChart(demoData);
+    renderJobDetailChart(demoData);
+    renderWorkAddressChart(demoData);
+    renderFacilityTypeChart(demoData);
+    renderFacilityDetailChart(demoData);
+    renderSymptomChart(demoData);
+    renderDiagDelayChart(demoData);
+    renderRapidChart(demoData);
+    renderRapidMarkerStats(demoData);
+  };
+  jenisSel.onchange = applyAndRender;
+  wabakSel.onchange = applyAndRender;
+
+  msList.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.onchange = ()=>{
+      if(cb.checked) demoFilters.lokaliti.add(cb.value);
+      else demoFilters.lokaliti.delete(cb.value);
+      applyAndRender();
+    };
+  });
+
+  msSearch.value = '';
+  msSearch.oninput = ()=>{
+    const q = msSearch.value.trim().toLowerCase();
+    let anyVisible = false;
+    msList.querySelectorAll('label').forEach(label=>{
+      const match = !q || label.dataset.searchText.includes(q);
+      label.style.display = match ? '' : 'none';
+      if(match) anyVisible = true;
+    });
+    let emptyMsg = msList.querySelector('.empty');
+    if(!anyVisible){
+      if(!emptyMsg){ emptyMsg = document.createElement('div'); emptyMsg.className='empty'; msList.appendChild(emptyMsg); }
+      emptyMsg.textContent = t('noMatches');
+    } else if(emptyMsg){
+      emptyMsg.remove();
+    }
+  };
+
+  msSelectAll.onclick = ()=>{
+    const visibleCbs = [...msList.querySelectorAll('label')].filter(l=>l.style.display!=='none').map(l=>l.querySelector('input'));
+    visibleCbs.forEach(cb=>{ cb.checked = true; demoFilters.lokaliti.add(cb.value); });
+    applyAndRender();
+  };
+  msClear.onclick = ()=>{
+    msList.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked=false);
+    demoFilters.lokaliti.clear();
+    applyAndRender();
+  };
+
+  msBtn.onclick = (e)=>{
+    e.stopPropagation();
+    msPanel.classList.toggle('hidden');
+    if(!msPanel.classList.contains('hidden')) msSearch.focus();
+  };
+  msPanel.onclick = (e)=> e.stopPropagation();
+  document.addEventListener('click', ()=> msPanel.classList.add('hidden'));
+
+  if(resetBtn) resetBtn.onclick = ()=>{
+    jenisSel.value=''; wabakSel.value='';
+    demoFilters.lokaliti.clear();
+    msList.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked=false);
+    applyAndRender();
+  };
+}
+
+const AGE_SCHEMES = {
+  // Option 1 (default): lifecycle-stage bands — preschool/primary/secondary
+  // school, young adult, working-age adult, elderly.
+  lifecycle: [[0,5],[6,12],[13,17],[18,29],[30,59],[60,999]],
+  // Option 2: standard epidemiological age bands (commonly used in WHO/CDC
+  // infectious-disease surveillance reporting).
+  who: [[0,4],[5,14],[15,24],[25,44],[45,64],[65,999]],
+  // Option 3: the original detailed 5-year bands.
+  detailed: [[0,4],[5,9],[10,14],[15,19],[20,29],[30,39],[40,49],[50,59],[60,999]],
+};
+let ageScheme = 'lifecycle';
+function renderAgeChart(data){
+  const bins = AGE_SCHEMES[ageScheme] || AGE_SCHEMES.lifecycle;
+  const labelFor = b => b[1]>=999 ? `${b[0]}+` : `${b[0]}-${b[1]}`;
+  const counts = bins.map(b=> data.filter(r=>{
+    const age = r.umur_tahun!=null ? r.umur_tahun : (r.umur_bulan!=null ? 0 : null);
+    return age!=null && age>=b[0] && age<=b[1];
+  }).length);
+  if(charts.age) charts.age.destroy();
+  const ctx = document.getElementById('ageChart').getContext('2d');
+  const n = data.length || 1;
+  const nBadge = document.getElementById('ageChartN');
+  if(nBadge) nBadge.textContent = `n=${data.length}`;
+  charts.age = new Chart(ctx,{
+    type:'bar',
+    data:{ labels: bins.map(labelFor), datasets:[{label:t('caseWord'), data:counts, backgroundColor:COLORS.teal}] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw} ${t('caseWord')} (${(100*c.raw/n).toFixed(1)}%)`}}},
+      scales:{y:{beginAtZero:true}}
+    }
+  });
+}
+function initAgeSchemeSelect(){
+  const sel = document.getElementById('ageSchemeSelect');
+  if(!sel) return;
+  sel.value = ageScheme;
+  sel.onchange = ()=>{
+    ageScheme = sel.value;
+    renderAgeChart(filteredCases());
+  };
+}
+function renderGenderChart(data){
+  const male = data.filter(r=>r.jantina==='Lelaki').length;
+  const female = data.filter(r=>r.jantina==='Perempuan').length;
+  const citizen = data.filter(r=>r.kewarganegaraan==='Warganegara').length;
+  const nonCitizen = data.length - citizen;
+  const fullLabels = ['Lelaki','Perempuan','Warganegara (WN)','Bukan Warganegara (BWN)'];
+  if(charts.gender) charts.gender.destroy();
+  const ctx = document.getElementById('genderChart').getContext('2d');
+  const nBadgeGender = document.getElementById('genderChartN');
+  if(nBadgeGender) nBadgeGender.textContent = `n=${data.length}`;
+  charts.gender = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:['Lelaki','Perempuan','WN','BWN'],
+      datasets:[{data:[male,female,citizen,nonCitizen], backgroundColor:[COLORS.teal,COLORS.hotpink,COLORS.teal,COLORS.muted]}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{title:items=>fullLabels[items[0].dataIndex]}}},
+      scales:{y:{beginAtZero:true}}
+    }
+  });
+}
+function renderEthnicChart(data){
+  const byE = {};
+  data.forEach(r=>{ byE[r.keturunan]=(byE[r.keturunan]||0)+1; });
+  const entries = Object.entries(byE).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if(charts.ethnic) charts.ethnic.destroy();
+  const ctx = document.getElementById('ethnicChart').getContext('2d');
+  const nBadgeEthnic = document.getElementById('ethnicChartN');
+  if(nBadgeEthnic) nBadgeEthnic.textContent = `n=${data.length}`;
+  charts.ethnic = new Chart(ctx,{
+    type:'bar',
+    data:{ labels: entries.map(e=>e[0]), datasets:[{data: entries.map(e=>e[1]), backgroundColor:COLORS.hotpink}] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true}} }
+  });
+}
+function renderJobCategoryChart(data){
+  const byK = {};
+  data.forEach(r=>{ const k = r.kategori_pekerjaan || 'Tidak Dinyatakan'; byK[k]=(byK[k]||0)+1; });
+  const order = ['Pelajar','Bekerja','Tidak Bekerja','Tidak Dinyatakan'];
+  const entries = Object.entries(byK).sort((a,b)=>{
+    const ai = order.indexOf(a[0]), bi = order.indexOf(b[0]);
+    return (ai===-1?99:ai) - (bi===-1?99:bi);
+  });
+  const colors = {'Pelajar':COLORS.teal,'Bekerja':COLORS.teal,'Tidak Bekerja':COLORS.teal,'Tidak Dinyatakan':COLORS.muted};
+  if(charts.jobCategory) charts.jobCategory.destroy();
+  const ctx = document.getElementById('jobCategoryChart').getContext('2d');
+  const n = data.length || 1;
+  const nBadgeJobCat = document.getElementById('jobCategoryChartN');
+  if(nBadgeJobCat) nBadgeJobCat.textContent = `n=${data.length}`;
+  charts.jobCategory = new Chart(ctx,{
+    type:'bar',
+    data:{ labels: entries.map(e=>e[0]), datasets:[{data: entries.map(e=>e[1]), backgroundColor: entries.map(e=>colors[e[0]]||COLORS.muted)}] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw} ${t('caseWord')} (${(100*c.raw/n).toFixed(1)}%)`}}},
+      scales:{y:{beginAtZero:true}}
+    }
+  });
+}
+function renderJobDetailChart(data){
+  const byP = {};
+  data.forEach(r=>{ const p = r.pekerjaan || 'Tidak Dinyatakan'; byP[p]=(byP[p]||0)+1; });
+  const entries = Object.entries(byP).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  if(charts.jobDetail) charts.jobDetail.destroy();
+  const ctx = document.getElementById('jobDetailChart').getContext('2d');
+  const n = data.length || 1;
+  const nBadgeJobDetail = document.getElementById('jobDetailChartN');
+  if(nBadgeJobDetail) nBadgeJobDetail.textContent = `n=${data.length}`;
+  charts.jobDetail = new Chart(ctx,{
+    type:'bar',
+    data:{ labels: entries.map(e=>e[0]), datasets:[{data: entries.map(e=>e[1]), backgroundColor:COLORS.hotpink}] },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw} ${t('caseWord')} (${(100*c.raw/n).toFixed(1)}%)`}}},
+      scales:{x:{beginAtZero:true}}
+    }
+  });
+}
+function renderWorkAddressChart(data){
+  const byA = {};
+  data.forEach(r=>{
+    const raw = r.alamat_pekerjaan;
+    if(!raw || raw === 'Tidak Dinyatakan') return; // exclude missing/unstated from the ranking
+    const key = normWorkAddressKey(raw);
+    if(!key) return;
+    byA[key] = (byA[key]||0)+1;
+  });
+  const entries = Object.entries(byA).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  if(charts.workAddress) charts.workAddress.destroy();
+  const ctx = document.getElementById('workAddressChart').getContext('2d');
+  const n = data.length || 1;
+  const nBadgeWorkAddr = document.getElementById('workAddressChartN');
+  if(nBadgeWorkAddr) nBadgeWorkAddr.textContent = `n=${data.length}`;
+  charts.workAddress = new Chart(ctx,{
+    type:'bar',
+    data:{ labels: entries.map(e=>e[0]), datasets:[{data: entries.map(e=>e[1]), backgroundColor:COLORS.hotpink}] },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw} ${t('caseWord')} (${(100*c.raw/n).toFixed(1)}%)`}}},
+      scales:{x:{beginAtZero:true}}
+    }
+  });
+}
+function renderFacilityTypeChart(data){
+  const byF = {};
+  data.forEach(r=>{ const f = r.jenis_kemudahan_kesihatan || 'Tidak Dinyatakan'; byF[f]=(byF[f]||0)+1; });
+  const entries = Object.entries(byF).sort((a,b)=>b[1]-a[1]);
+  if(charts.facilityType) charts.facilityType.destroy();
+  const ctx = document.getElementById('facilityTypeChart').getContext('2d');
+  const n = data.length || 1;
+  const nBadgeFacType = document.getElementById('facilityTypeChartN');
+  if(nBadgeFacType) nBadgeFacType.textContent = `n=${data.length}`;
+  charts.facilityType = new Chart(ctx,{
+    type:'bar',
+    data:{ labels: entries.map(e=>e[0]), datasets:[{data: entries.map(e=>e[1]), backgroundColor:COLORS.teal}] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw} ${t('caseWord')} (${(100*c.raw/n).toFixed(1)}%)`}}},
+      scales:{y:{beginAtZero:true}}
+    }
+  });
+}
+function renderFacilityDetailChart(data){
+  const byF = {};
+  data.forEach(r=>{ const f = r.kemudahan_kesihatan || 'Tidak Dinyatakan'; byF[f]=(byF[f]||0)+1; });
+  const entries = Object.entries(byF).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  if(charts.facilityDetail) charts.facilityDetail.destroy();
+  const ctx = document.getElementById('facilityDetailChart').getContext('2d');
+  const n = data.length || 1;
+  const nBadgeFacDetail = document.getElementById('facilityDetailChartN');
+  if(nBadgeFacDetail) nBadgeFacDetail.textContent = `n=${data.length}`;
+  charts.facilityDetail = new Chart(ctx,{
+    type:'bar',
+    data:{ labels: entries.map(e=>e[0]), datasets:[{data: entries.map(e=>e[1]), backgroundColor:COLORS.amber}] },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw} ${t('caseWord')} (${(100*c.raw/n).toFixed(1)}%)`}}},
+      scales:{x:{beginAtZero:true}}
+    }
+  });
+}
+function renderSymptomChart(data){
+  const fields = [
+    ['demam','Demam'],
+    ['sakit_kepala','Sakit Kepala'], ['sakit_badan','Sakit Badan/Sendi'],
+    ['loya_muntah','Loya/Muntah'], ['ruam','Ruam (Rash)'],
+    ['cirit_birit','Cirit-birit'], ['sakit_perut','Sakit Perut/Abdomen'],
+    ['gejala_pendarahan','Gejala Pendarahan'], ['sakit_belakang_mata','Sakit Belakang Mata']
+  ];
+  const n = data.length || 1;
+  const nBadgeSymptom = document.getElementById('symptomChartN');
+  if(nBadgeSymptom) nBadgeSymptom.textContent = `n=${data.length}`;
+  const pct = fields.map(([k])=> +(100*data.filter(r=>r[k]==='YES').length/n).toFixed(1));
+  if(charts.symptom) charts.symptom.destroy();
+  const ctx = document.getElementById('symptomChart').getContext('2d');
+  charts.symptom = new Chart(ctx,{
+    type:'bar',
+    data:{ labels: fields.map(f=>f[1]), datasets:[{label:t('pctCasesDataset'), data:pct, backgroundColor:COLORS.red}] },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw+'%'}}},
+      scales:{x:{beginAtZero:true, max:100, title:{display:true,text:t('pctOfFilteredAxis')}}}
+    }
+  });
+}
+
+/* ---------- time to diagnosis (Tarikh Onset -> Tarikh Diagnosis) ----------
+   A histogram + summary stats rather than a per-case line list — the
+   question this answers is "how quickly are cases generally getting
+   diagnosed", which is a distribution shape, not something meaningful to
+   scan case-by-case. Negative deltas (diagnosis recorded before onset) are
+   treated as data errors and excluded, same pattern as the map's outlier
+   coordinate handling — shown as a visible count, not silently dropped. */
+function renderDiagDelayChart(data){
+  const noteEl = document.getElementById('diagDelayNote');
+  const hasColumn = data.some(r=> r.diagnosis);
+  if(!hasColumn){
+    if(noteEl) noteEl.textContent = t('diagDelayNoColumn');
+    if(charts.diagDelay){ charts.diagDelay.destroy(); charts.diagDelay=null; }
+    document.getElementById('diagDelayStats').innerHTML = '';
+    const outlierEl = document.getElementById('diagDelayOutlierNote');
+    if(outlierEl) outlierEl.classList.add('hidden');
+    return;
+  }
+
+  let missing = 0, invalid = 0;
+  const deltas = [];
+  data.forEach(r=>{
+    if(!r.diagnosis){ missing++; return; }
+    const delta = daysBetween(r.onset, r.diagnosis);
+    if(delta < 0){ invalid++; return; }
+    deltas.push(delta);
+  });
+
+  const n = deltas.length;
+  if(noteEl) noteEl.textContent = `${n} ${t('caseWord')}`;
+
+  const outlierEl = document.getElementById('diagDelayOutlierNote');
+  if(outlierEl){
+    const parts = [];
+    if(invalid>0) parts.push(`${invalid} ${t('diagDelayOutlierNote')}`);
+    if(missing>0) parts.push(`${missing} ${t('diagDelayMissingNote')}`);
+    outlierEl.textContent = parts.length ? '⚠ '+parts.join(' · ') : '';
+    outlierEl.classList.toggle('hidden', parts.length===0);
+  }
+
+  // Summary stat cards
+  const statsEl = document.getElementById('diagDelayStats');
+  if(statsEl){
+    statsEl.innerHTML = '';
+    if(n>0){
+      const sorted = [...deltas].sort((a,b)=>a-b);
+      const median = sorted.length%2 ? sorted[(sorted.length-1)/2] : (sorted[sorted.length/2-1]+sorted[sorted.length/2])/2;
+      const mean = deltas.reduce((a,b)=>a+b,0)/n;
+      const cards = [
+        {lbl:t('diagDelayCasesAnalyzed'), num:n},
+        {lbl:t('diagDelayMedian'), num:median},
+        {lbl:t('diagDelayMean'), num:mean.toFixed(1)},
+      ];
+      cards.forEach(c=>{
+        const div = document.createElement('div');
+        div.className = 'kpi';
+        div.innerHTML = `<div class="num">${c.num}</div><div class="lbl">${c.lbl}</div>`;
+        statsEl.appendChild(div);
+      });
+    }
+  }
+
+  // Histogram buckets: fine-grained near the common range (0-4 days), then
+  // wider bands for the long tail.
+  const bins = [[0,0],[1,1],[2,2],[3,3],[4,4],[5,7],[8,14],[15,99999]];
+  const labelFor = b => b[0]===b[1] ? String(b[0]) : (b[1]>=99999 ? `>${b[0]-1}` : `${b[0]}-${b[1]}`);
+  const counts = bins.map(b=> deltas.filter(d=> d>=b[0] && d<=b[1]).length);
+
+  if(charts.diagDelay) charts.diagDelay.destroy();
+  const ctx = document.getElementById('diagDelayChart').getContext('2d');
+  const nn = n || 1;
+  charts.diagDelay = new Chart(ctx,{
+    type:'bar',
+    data:{ labels: bins.map(labelFor), datasets:[{label:t('caseWord'), data:counts, backgroundColor:COLORS.amber}] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw} ${t('caseWord')} (${(100*c.raw/nn).toFixed(1)}%)`}}},
+      scales:{
+        x:{title:{display:true,text:t('diagDelayAxisTitle')}},
+        y:{beginAtZero:true}
+      }
+    }
+  });
+}
+const RAPID_ORDER = ['NS1 sahaja','IgM sahaja','IgG sahaja','NS1+IgM','NS1+IgG','IgM+IgG','NS1+IgM+IgG','Tiada Data','Lain-lain'];
+const RAPID_COLORS = {
+  'NS1 sahaja':COLORS.teal, 'IgM sahaja':'#5a9bd4', 'IgG sahaja':'#8fbbe3',
+  'NS1+IgM':COLORS.amber, 'NS1+IgG':'#1f5c45', 'IgM+IgG':'#7fd0ad',
+  'NS1+IgM+IgG':COLORS.red, 'Tiada Data':'#7d93a6', 'Lain-lain':'#b3c2cf'
+};
+function renderRapidChart(data){
+  const hasAny = data.some(r=> r.ujian_rapid_kategori);
+  if(!hasAny){
+    if(charts.rapid){ charts.rapid.destroy(); charts.rapid=null; }
+    const noteEl = document.getElementById('rapidNote');
+    if(noteEl) noteEl.textContent = t('noRapidColumn');
+    const statsEl = document.getElementById('rapidMarkerStats');
+    if(statsEl) statsEl.innerHTML = '<p style="font-size:12px;color:var(--muted);">Tiada data untuk dipaparkan.</p>';
+    return;
+  }
+  const counts = {};
+  data.forEach(r=>{
+    if(!r.ujian_rapid_kategori) return;
+    counts[r.ujian_rapid_kategori] = (counts[r.ujian_rapid_kategori]||0)+1;
+  });
+  const cats = RAPID_ORDER.filter(c=> counts[c]);
+  const values = cats.map(c=> counts[c]);
+  const colors = cats.map(c=> RAPID_COLORS[c] || COLORS.muted);
+  const totalTested = cats.reduce((s,c)=>s+counts[c],0);
+  const noteEl = document.getElementById('rapidNote');
+  if(noteEl) noteEl.textContent = `${totalTested} ${t('rapidCasesWithResult')}`;
+
+  if(charts.rapid) charts.rapid.destroy();
+  const ctx = document.getElementById('rapidChart').getContext('2d');
+  charts.rapid = new Chart(ctx,{
+    type:'bar',
+    data:{ labels: cats, datasets:[{label:t('caseCountAxis'), data: values, backgroundColor: colors}] },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw} ${t('caseWord')} (${(100*c.raw/totalTested).toFixed(1)}%)`}}},
+      scales:{x:{beginAtZero:true, title:{display:true,text:'Bilangan Kes'}}}
+    }
+  });
+}
+function renderRapidMarkerStats(data){
+  const tested = data.filter(r=> r.ujian_rapid_kategori && r.ujian_rapid_kategori!=='Tiada Data');
+  const n = tested.length;
+  const el = document.getElementById('rapidMarkerStats');
+  if(!el) return;
+  if(n===0){ el.innerHTML = ''; return; }
+
+  const addRow = (label, count, pct, color)=>{
+    const row = document.createElement('div');
+    row.innerHTML = `
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px;">
+        <span style="font-weight:600;">${label}</span>
+        <span style="font-family:var(--mono);color:var(--muted);">${count} ${t('caseWord')} (${pct}%)</span>
+      </div>
+      <div style="background:var(--line);border-radius:3px;height:8px;overflow:hidden;">
+        <div style="width:${pct}%;background:${color};height:100%;"></div>
+      </div>`;
+    el.appendChild(row);
+  };
+
+  el.innerHTML = '';
+
+  // Overall positivity per individual marker (a case can count toward more than one row
+  // here, e.g. a NS1+IgG case counts in both rows) — distinct from the mutually-exclusive
+  // combination breakdown already shown in the chart on the left.
+  const markers = [
+    {label:`NS1 ${t('positiveWord')}`, match:c=>c.includes('NS1')},
+    {label:`IgM ${t('positiveWord')}`, match:c=>c.includes('IgM')},
+    {label:`IgG ${t('positiveWord')}`, match:c=>c.includes('IgG')},
+  ];
+  markers.forEach(m=>{
+    const count = tested.filter(r=> m.match(r.ujian_rapid_kategori)).length;
+    addRow(m.label, count, (100*count/n).toFixed(1), COLORS.teal);
+  });
+}
+
+// Deliberately ignores the Year filter (state.tahun) — the whole point of
+// this chart is to compare years side by side, so isolating to one year
+// would defeat it. Still respects mukim/jenis/status/week-range filters.
+// Derived directly from filteredCases() rather than reimplemented, so it
+// The year-over-year comparison chart is deliberately independent of every
+// other filter on the page — the global Tapis Data filters (mukim/jenis/
+// status), the week-range slider, and the demografi section's local
+// filters all leave this section alone. The ONLY thing that narrows what
+// it plots is its own "Tahun dipaparkan" multiselect. This is intentional:
+// the whole point of the section is a stable, always-comparable view across
+// years, which a filter set to (e.g.) one mukim or one week range would
+// undermine without it being obvious why the chart suddenly looks sparse.
+function allCasesForYearCompare(){
+  return CASES;
+}
+// Which years to actually plot on the comparison chart — empty Set means
+// "show all", matching the same convention used by the Lokaliti multiselect.
+let yearCompareSelected = new Set();
+function renderYearComparisonChart(){
+  const canvas = document.getElementById('yearCompareChart');
+  if(!canvas) return;
+  const data = allCasesForYearCompare();
+  // Bucket by whichever basis (Onset/Notifikasi/Daftar) the Trend Kes
+  // Denggi chart above is currently showing — keeping both charts on the
+  // same clock, the same fix applied earlier to the week-range slider.
+  const f = BASIS_FIELDS[epiCurveBasis];
+  const byYearWeek = {};
+  data.forEach(r=>{
+    const year = f ? r[f.year] : r.year;
+    const week = f ? r[f.week] : r.week;
+    if(year==null || week==null) return;
+    if(!byYearWeek[year]) byYearWeek[year] = {};
+    byYearWeek[year][week] = (byYearWeek[year][week]||0)+1;
+  });
+  const allYears = Object.keys(byYearWeek).map(Number).sort((a,b)=>a-b);
+  if(allYears.length < 2) return; // section is hidden in this case; skip the render entirely
+  let years = yearCompareSelected.size > 0
+    ? allYears.filter(y=> yearCompareSelected.has(String(y)))
+    : allYears;
+  if(!years.length) years = allYears; // guard against an empty selection somehow slipping through
+  const maxWeek = 53;
+  const labels = Array.from({length:maxWeek}, (_,i)=> 'EW'+(i+1));
+  const palette = [COLORS.teal, COLORS.red, COLORS.amber, COLORS.accent, COLORS.tealDark, '#33556e', '#0f766e'];
+  const datasets = years.map((y,i)=>{
+    // Only fill zeros WITHIN the range of weeks this year actually has data
+    // for — a week with zero cases in the middle of the reporting period is
+    // a real data point, but weeks after the last one reported (e.g. the
+    // current year's data simply hasn't reached EW53 yet) should leave the
+    // line stopped rather than plunge to a misleading 0.
+    const weeksWithData = Object.keys(byYearWeek[y]).map(Number);
+    const lastObservedWeek = Math.max(...weeksWithData);
+    return {
+      label: String(y),
+      data: Array.from({length:maxWeek}, (_,wi)=>{
+        const week = wi+1;
+        if(week > lastObservedWeek) return null;
+        return byYearWeek[y][week] || 0;
+      }),
+      borderColor: palette[i % palette.length],
+      backgroundColor: 'transparent',
+      borderWidth:2, pointRadius:0, tension:0.25, spanGaps:false,
+    };
+  });
+  if(charts.yearCompare) charts.yearCompare.destroy();
+  const ctx = canvas.getContext('2d');
+  charts.yearCompare = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index', intersect:false},
+      scales:{
+        x:{ticks:{maxRotation:60, minRotation:60, font:{size:9}}},
+        y:{beginAtZero:true, title:{display:true,text:t('caseCountAxis')}}
+      },
+      plugins:{
+        legend:{
+          position:'top', labels:{boxWidth:12, font:{size:11}},
+          // Hovering a legend entry dims every other year's line so a
+          // single year can be traced without needing a different chart
+          // type — with 7 overlapping lines, isolating one visually is
+          // otherwise genuinely hard, especially where lines cross.
+          onHover:(evt, legendItem, legend)=>{
+            const chart = legend.chart;
+            chart.data.datasets.forEach((ds,i)=>{
+              ds.borderColor = i===legendItem.datasetIndex ? palette[i % palette.length] : hexToRgba(palette[i % palette.length], 0.12);
+              ds.borderWidth = i===legendItem.datasetIndex ? 3 : 2;
+            });
+            chart.update('none');
+          },
+          onLeave:(evt, legendItem, legend)=>{
+            const chart = legend.chart;
+            chart.data.datasets.forEach((ds,i)=>{
+              ds.borderColor = palette[i % palette.length];
+              ds.borderWidth = 2;
+            });
+            chart.update('none');
+          }
+        },
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw} ${t('caseWord')}`}}
+      }
+    }
+  });
+}
+
+function heatmapColor(t){
+  const light = [223,242,232], dark = [47,143,107]; // --amber-soft -> --amber
+  const r = Math.round(light[0] + (dark[0]-light[0])*t);
+  const g = Math.round(light[1] + (dark[1]-light[1])*t);
+  const b = Math.round(light[2] + (dark[2]-light[2])*t);
+  return `rgb(${r},${g},${b})`;
+}
+
+// Year × week heatmap — no overlapping lines at all, so it scales cleanly
+// to any number of years and is good for spotting seasonal patterns or an
+// unusually heavy year at a glance. Cell color intensity is normalized
+// against the single highest week across the WHOLE grid, so intensity is
+// genuinely comparable across years, not just within one row.
+function renderYearWeekHeatmap(){
+  const container = document.getElementById('heatmapGrid');
+  if(!container) return;
+  const data = allCasesForYearCompare();
+  const f = BASIS_FIELDS[epiCurveBasis];
+  const byYearWeek = {};
+  data.forEach(r=>{
+    const year = f ? r[f.year] : r.year;
+    const week = f ? r[f.week] : r.week;
+    if(year==null || week==null) return;
+    if(!byYearWeek[year]) byYearWeek[year] = {};
+    byYearWeek[year][week] = (byYearWeek[year][week]||0)+1;
+  });
+  const allYears = Object.keys(byYearWeek).map(Number).sort((a,b)=>a-b);
+  if(allYears.length < 2){ container.innerHTML=''; return; }
+  const years = [...allYears].reverse(); // most recent year first
+  const maxWeek = 53;
+
+  let globalMax = 0;
+  years.forEach(y=> Object.values(byYearWeek[y]).forEach(v=>{ if(v>globalMax) globalMax = v; }));
+  if(globalMax === 0) globalMax = 1;
+
+  const cellW = 16, labelW = 48;
+  container.innerHTML = '';
+  container.style.cssText = 'display:inline-block;';
+
+  // header row: week numbers, shown every 4th to avoid clutter
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;';
+  const cornerCell = document.createElement('div');
+  cornerCell.style.cssText = `width:${labelW}px;flex:0 0 ${labelW}px;`;
+  header.appendChild(cornerCell);
+  for(let w=1; w<=maxWeek; w++){
+    const hc = document.createElement('div');
+    hc.style.cssText = `width:${cellW}px;flex:0 0 ${cellW}px;font-size:8px;color:var(--muted);text-align:center;font-family:var(--mono);`;
+    hc.textContent = (w % 4 === 1) ? w : '';
+    header.appendChild(hc);
+  }
+  container.appendChild(header);
+
+  years.forEach(y=>{
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;';
+    const label = document.createElement('div');
+    label.style.cssText = `width:${labelW}px;flex:0 0 ${labelW}px;font-size:11px;font-weight:600;color:var(--ink);font-family:var(--mono);`;
+    label.textContent = y;
+    row.appendChild(label);
+    for(let w=1; w<=maxWeek; w++){
+      const count = (byYearWeek[y] && byYearWeek[y][w]) || 0;
+      const cell = document.createElement('div');
+      const t2 = globalMax ? count/globalMax : 0;
+      cell.style.cssText = `width:${cellW}px;height:${cellW}px;flex:0 0 ${cellW}px;background:${count>0?heatmapColor(t2):'transparent'};border:1px solid var(--paper);box-sizing:border-box;cursor:default;`;
+      cell.title = `EW${w} ${y}: ${count} ${t('caseWord')}`;
+      row.appendChild(cell);
+    }
+    container.appendChild(row);
+  });
+
+  const legendEl = document.getElementById('heatmapColorScale');
+  if(legendEl){
+    legendEl.innerHTML = '';
+    const steps = 8;
+    for(let i=0;i<=steps;i++){
+      const sw = document.createElement('span');
+      sw.style.cssText = `width:14px;height:10px;display:inline-block;background:${heatmapColor(i/steps)};`;
+      legendEl.appendChild(sw);
+    }
+  }
+}
+
+function renderAll(){
+  const data = filteredCases();
+  renderKPI(data);
+  renderEpiCurve(data);
+  renderYearComparisonChart();
+  renderYearWeekHeatmap();
+  renderMap(data);
+  renderMukimChart(data);
+  renderClusterTable(data);
+  const demoData = demoFilteredCases(data);
+  renderAgeChart(demoData);
+  renderGenderChart(demoData);
+  renderEthnicChart(demoData);
+  renderJobCategoryChart(demoData);
+  renderJobDetailChart(demoData);
+  renderWorkAddressChart(demoData);
+  renderFacilityTypeChart(demoData);
+  renderFacilityDetailChart(demoData);
+  renderSymptomChart(demoData);
+  renderDiagDelayChart(demoData);
+  renderRapidChart(demoData);
+  renderRapidMarkerStats(demoData);
+}
+
+/* =========================================================
+   4. BOOT
+   ========================================================= */
+document.addEventListener('DOMContentLoaded', ()=>{
+  initLanguageToggle();
+  initUploadScreen();
+});
+
+</script>
+</body>
+</html>
